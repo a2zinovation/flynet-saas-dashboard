@@ -14,6 +14,7 @@ import Reports from "./pages/Reports";
 import Communicator from "./pages/Communicator";
 import NotificationCenter from "./pages/NotificationCenter";
 import Settings from "./pages/Settings";
+import Profile from "./pages/Profile";   // ⭐ NEW
 
 // AUTH
 import Login from "./pages/Auth/Login";
@@ -23,15 +24,18 @@ export default function App() {
   return (
     <Routes>
 
-      {/* LOGIN (public route) */}
+      {/* PUBLIC */}
       <Route path="/login" element={<Login />} />
-
-      {/* DEFAULT: redirect to dashboard */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
 
-      {/* PROTECTED AREA */}
-      <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
-
+      {/* PROTECTED */}
+      <Route
+        element={
+          <RequireAuth>
+            <MainLayout />
+          </RequireAuth>
+        }
+      >
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/all-business" element={<AllBusiness />} />
@@ -42,14 +46,15 @@ export default function App() {
 
         <Route path="/reports" element={<Reports />} />
         <Route path="/communicator" element={<Communicator />} />
+
         <Route path="/notification-center" element={<NotificationCenter />} />
         <Route path="/settings" element={<Settings />} />
 
+        <Route path="/profile" element={<Profile />} /> {/* ⭐ NEW */}
       </Route>
 
-      {/* FALLBACK */}
+      {/* 404 → HOME */}
       <Route path="*" element={<Navigate to="/" />} />
-
     </Routes>
   );
 }

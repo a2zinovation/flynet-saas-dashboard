@@ -1,3 +1,4 @@
+// src/components/layout/Header.jsx
 import React, { useState } from "react";
 import {
   AppBar,
@@ -14,20 +15,21 @@ import {
   Divider,
   useTheme,
 } from "@mui/material";
+
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircle from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
 
-const Header = ({ drawerWidth, handleDrawerToggle }) => {
+const Header = ({ drawerWidth }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  // Language data (use your public assets folder)
   const languages = [
     { code: "en-US", name: "EN-US", image: "/assets/flags/us.png" },
     { code: "es", name: "ES", image: "/assets/flags/es.png" },
@@ -35,7 +37,6 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
   ];
 
   const [language, setLanguage] = useState("en-US");
-  const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchor, setProfileAnchor] = useState(null);
 
   const isMenuOpen = Boolean(profileAnchor);
@@ -43,17 +44,25 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
   const handleProfileMenuOpen = (e) => setProfileAnchor(e.currentTarget);
   const handleProfileMenuClose = () => setProfileAnchor(null);
 
-  const handleLogout = () => {
+  const openProfilePage = () => {
     handleProfileMenuClose();
-    logout && logout();
+    navigate("/profile");
   };
 
-  const handleProfileClick = () => {
+  const handleLogoutClick = () => {
     handleProfileMenuClose();
-    navigate("/user/profile");
+    logout();
   };
 
-  // Profile dropdown (Signed in as + actions)
+  const Flag = ({ src, alt }) => (
+    <img
+      src={src}
+      alt={alt}
+      style={{ width: 22, height: 14, objectFit: "cover" }}
+      onError={(e) => (e.currentTarget.style.display = "none")}
+    />
+  );
+
   const renderProfileMenu = (
     <Menu
       anchorEl={profileAnchor}
@@ -63,46 +72,30 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
       onClose={handleProfileMenuClose}
       PaperProps={{
         elevation: 4,
-        sx: {
-          borderRadius: 2,
-          mt: 1,
-          minWidth: 220,
-          p: 0,
-        },
+        sx: { borderRadius: 2, mt: 1, minWidth: 220, p: 0 },
       }}
     >
       <Box sx={{ px: 2, py: 1 }}>
-        <Typography variant="body2" color="text.secondary">Signed in as</Typography>
-        <Typography variant="body1" fontWeight="bold" sx={{ color: theme.palette.text.primary }}>
+        <Typography variant="body2" color="text.secondary">
+          Signed in as
+        </Typography>
+        <Typography variant="body1" fontWeight="bold">
           {user?.name || "Super Admin"}
         </Typography>
       </Box>
 
       <Divider />
 
-      <MenuItem onClick={handleProfileClick}>
-        <PersonIcon fontSize="small" sx={{ mr: 1, color: "black" }} />
-        <Typography variant="body1">Profile</Typography>
+      <MenuItem onClick={openProfilePage}>
+        <PersonIcon fontSize="small" sx={{ mr: 1 }} />
+        Profile
       </MenuItem>
 
-      <MenuItem onClick={handleLogout}>
-        <LogoutIcon fontSize="small" sx={{ mr: 1, color: "black" }} />
-        <Typography variant="body1">Sign Out</Typography>
+      <MenuItem onClick={handleLogoutClick}>
+        <LogoutIcon fontSize="small" sx={{ mr: 1 }} />
+        Sign Out
       </MenuItem>
     </Menu>
-  );
-
-  // small helper to safely render flag (fallback to text)
-  const Flag = ({ src, alt }) => (
-    <img
-      src={src}
-      alt={alt}
-      style={{ width: 22, height: 14, objectFit: "cover", display: "inline-block" }}
-      onError={(e) => {
-        // fallback: hide broken image (we'll still show the code text)
-        e.currentTarget.style.display = "none";
-      }}
-    />
   );
 
   return (
@@ -120,18 +113,16 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
         <Toolbar
           sx={{
             justifyContent: "space-between",
-            [theme.breakpoints.up("sm")]: { ml: `${drawerWidth}px` },
             minHeight: 74,
             pr: 3,
+            ml: { sm: `${drawerWidth}px` },
           }}
         >
-          {/* left spacer - hamburger remains in sidebar */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }} />
+          <Box />
 
-          {/* right controls */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            {/* Language selector */}
-            <FormControl variant="outlined" size="small">
+            {/* Language Selector */}
+            <FormControl size="small">
               <Select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -141,24 +132,26 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
                   borderRadius: 2,
                   px: 1,
                   py: 0.25,
-                  display: "flex",
-                  alignItems: "center",
                   minWidth: 120,
-                  "& .MuiSelect-select": { display: "flex", alignItems: "center", gap: 1 },
+                  "& .MuiSelect-select": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  },
                 }}
-                renderValue={(selectedCode) => {
-                  const lang = languages.find((l) => l.code === selectedCode);
+                renderValue={(value) => {
+                  const lang = languages.find((l) => l.code === value);
                   return (
-                    <Stack direction="row" alignItems="center" spacing={1}>
+                    <Stack direction="row" spacing={1}>
                       <Flag src={lang?.image} alt={lang?.name} />
-                      <Typography fontSize={13}>{lang?.name ?? selectedCode}</Typography>
+                      <Typography fontSize={13}>{lang?.name}</Typography>
                     </Stack>
                   );
                 }}
               >
                 {languages.map((lang) => (
                   <MenuItem key={lang.code} value={lang.code}>
-                    <Stack direction="row" alignItems="center" spacing={1}>
+                    <Stack direction="row" spacing={1}>
                       <Flag src={lang.image} alt={lang.name} />
                       <Typography fontSize={13}>{lang.name}</Typography>
                     </Stack>
@@ -168,38 +161,26 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
             </FormControl>
 
             {/* Notifications */}
-            <IconButton
-              size="large"
-              color="inherit"
-              onClick={() => navigate("/admin/notifications")}
-              sx={{ background: "transparent", "&:hover": { background: "rgba(0,0,0,0.04)" } }}
-            >
+            <IconButton onClick={() => navigate("/notification-center")}>
               <Badge badgeContent={3} color="error">
-                <NotificationsIcon sx={{ color: theme.palette.text.primary }} />
+                <NotificationsIcon />
               </Badge>
             </IconButton>
 
-            {/* Profile */}
-            <IconButton
-              size="large"
-              onClick={handleProfileMenuOpen}
-              sx={{ background: "transparent", "&:hover": { background: "rgba(0,0,0,0.04)" } }}
-            >
-              <AccountCircle sx={{ color: theme.palette.text.primary }} />
+            {/* Profile Icon */}
+            <IconButton onClick={handleProfileMenuOpen}>
+              <AccountCircle />
             </IconButton>
 
-            {/* Direct logout (red outer icon) */}
+            {/* Red Logout Button */}
             <IconButton
-              size="medium"
               onClick={logout}
               sx={{
-                ml: 0.5,
                 backgroundColor: "#ff4d4f",
                 color: "#fff",
                 "&:hover": { backgroundColor: "#e03f3f" },
-                boxShadow: "0 3px 10px rgba(255,77,79,0.15)",
+                boxShadow: "0 3px 10px rgba(255,77,79,0.2)",
               }}
-              aria-label="sign out"
             >
               <LogoutIcon />
             </IconButton>
@@ -213,4 +194,3 @@ const Header = ({ drawerWidth, handleDrawerToggle }) => {
 };
 
 export default Header;
-// flynet-multi-app/saas-dashboard/src/components/layout/Header.jsx

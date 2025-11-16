@@ -1,42 +1,41 @@
 # Flynet SaaS Dashboard (Frontend)
 
-A fully responsive **SaaS Admin Dashboard** built with:
+Flynet SaaS Dashboard — Frontend (React + MUI)
 
-- **React 18**
-- **Material UI (MUI)**
-- **React Router v6**
-- **Leaflet Maps**
-- **Context API (Authentication)**
-- **Vite**
-- **Custom CSS based on Figma design**
-- **MUI Icons**
+A fully-designed SaaS Admin Dashboard UI built according to the Flynet Figma system.
+This repo contains the complete frontend layer only — fully responsive, pixel-perfect, and structured for integration with any backend (Node, Laravel, Django, etc.).
 
-This project implements the complete front-end UI for the Flynet SaaS system and integrates with a backend API (Node / Laravel / Django — depending on backend team).
+⚙ Tech Stack
 
----
+React 18
+Vite
+Material UI (MUI)
+React Router v6
+Leaflet Maps
+Context API (Auth)
+TipTap Editor (Communicator)
+Custom CSS (Figma matched)
 
-## 🚀 Features
+# 🚀 Features
+✅ Admin Panel Screens
 
-### ✅ Admin Panel Screens
-- Dashboard (map + stats)
-- All Businesses (table, filters, pagination)
-- Add Business
-- Packages
-- Package Subscription
-- Reports
-- Communicator (Rich editor using TipTap)
-- Notification Center
-- Settings (Super Admin Settings, Email/SMTP, Payment Gateways)
+Dashboard (map + stats)
 
-### ✅ Core Functionality
-- Authentication (Email + Password)
-- Protected Routes using `RequireAuth`
-- Global Auth Context
-- Sidebar Navigation (Collapsible)
-- Header (Language switcher, notifications, profile)
-- Fully responsive layout
+All Businesses (table, filters, pagination)
 
----
+Add Business
+
+Packages
+
+Package Subscription
+
+Reports
+
+Communicator (Rich editor using TipTap)
+
+Notification Center
+
+Settings (Super Admin Settings, Email/SMTP, Payment Gateways)
 
 ## 📁 Project Structure
 
@@ -44,11 +43,11 @@ This project implements the complete front-end UI for the Flynet SaaS system and
 saas-dashboard/
 │
 ├── public/
-│   ├── assets/
-│   │   ├── auth/ (login images)
-│   │   ├── icons/ (Figma SVGs)
-│   │   ├── flags/
-│   │   └── bg/
+│   └── assets/
+│       ├── auth/
+│       ├── icons/
+│       ├── flags/
+│       └── bg/
 │
 ├── src/
 │   ├── components/
@@ -85,6 +84,7 @@ saas-dashboard/
 │   └── main.jsx
 │
 └── package.json
+
 ```
 
 ---
@@ -93,7 +93,7 @@ saas-dashboard/
 
 ### 1. Clone the frontend repo
 ```bash
-git clone https://github.com/your-org/flynet-saas-dashboard.git
+git clone https://github.com/kashifcodes92/flynet-saas-dashboard.git
 cd saas-dashboard
 ```
 
