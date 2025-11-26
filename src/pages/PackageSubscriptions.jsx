@@ -1,218 +1,292 @@
-// src/pages/PackageSubscriptions.jsx
-import React from "react";
+// src/pages/PackageSubscription.jsx
+import React, { useState } from "react";
 import {
   Box,
-  Card,
-  CardContent,
+  Grid,
+  TextField,
   Typography,
-  Stack,
   Button,
-  Chip,
+  Tooltip,
+  InputAdornment,
   IconButton,
-  Divider,
 } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import { useNavigate } from "react-router-dom";
+const LABEL = {
+  fontWeight: 600,
+  fontSize: "14px",
+  color: "#0C2548",
+  mb: "6px",
+};
 
-export default function Packages() {
-  const navigate = useNavigate();
+const CAPTION = {
+  fontSize: "12px",
+  color: "#6B7280",
+  mt: "4px",
+};
 
-  // Navigate when clicking a package
-  const openSubscriptions = () => navigate("/package-subscription");
+export default function PackageSubscription() {
+  const [data, setData] = useState({});
+  const handle = (e) => setData({ ...data, [e.target.name]: e.target.value });
 
   return (
-    <Box>
-      {/* --- Header --- */}
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-        sx={{ mb: 3 }}
+    <Box
+      sx={{
+        px: "40px",
+        py: "32px",
+        maxWidth: "1120px",
+      }}
+    >
+      {/* HEADER */}
+      <Typography
+        variant="h5"
+        sx={{ fontWeight: 700, mb: "6px", color: "#0C2548", fontSize: "24px" }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight="700">
-            Packages
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            All Packages
-          </Typography>
-        </Box>
+        Packages{" "}
+        <Typography component="span" sx={{ color: "#6B7280", fontSize: "15px" }}>
+          All New Package
+        </Typography>
+      </Typography>
 
+      {/* FORM GRID */}
+      <Grid
+        container
+        spacing={"56px"} // EXACT Figma column gap
+        sx={{ mt: "24px" }}
+      >
+        {/* LEFT COLUMN */}
+        <Grid item xs={12} md={6}>
+          {/* Name */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Name:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="name"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Number of Locations */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Number of Locations:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="locations"
+              placeholder="0 = infinite"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+            <Typography sx={CAPTION}>0 = infinite</Typography>
+          </Box>
+
+          {/* Number of Cameras */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Number of Cameras:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="cameras"
+              placeholder="0 = infinite"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+            <Typography sx={CAPTION}>0 = infinite</Typography>
+          </Box>
+
+          {/* Price Interval */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Price Interval:</Typography>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              SelectProps={{ native: true }}
+              name="priceInterval"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            >
+              <option value="">Please Select</option>
+              <option value="Daily">Daily</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Annually">Annually</option>
+            </TextField>
+            <Typography sx={CAPTION}>Please Select</Typography>
+          </Box>
+
+          {/* Trial Days */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Trial Days:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="trialDays"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+          </Box>
+        </Grid>
+
+        {/* RIGHT COLUMN */}
+        <Grid item xs={12} md={6}>
+          {/* Description */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Package Description:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="description"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Active Users */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Number of active users:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="activeUsers"
+              placeholder="0 = infinite"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+            <Typography sx={CAPTION}>0 = infinite</Typography>
+          </Box>
+
+          {/* Invoices */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Number of Invoices:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="invoices"
+              placeholder="0 = infinite"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+            <Typography sx={CAPTION}>0 = infinite</Typography>
+          </Box>
+
+          {/* Interval */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography sx={LABEL}>Interval:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="interval"
+              onChange={handle}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+          </Box>
+
+          {/* Price */}
+          <Box sx={{ mb: "26px" }}>
+            <Typography
+              sx={{
+                ...LABEL,
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              Price:
+              <Tooltip title="Enter 0 for free" placement="top">
+                <IconButton size="small" sx={{ ml: "4px" }}>
+                  <InfoOutlinedIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Typography>
+
+            <TextField
+              fullWidth
+              size="small"
+              name="price"
+              onChange={handle}
+              placeholder="USD $"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">USD $</InputAdornment>
+                ),
+              }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  height: "40px",
+                  borderRadius: "6px",
+                },
+              }}
+            />
+
+            <Typography sx={CAPTION}>0 = Free Package</Typography>
+          </Box>
+        </Grid>
+      </Grid>
+
+      {/* SAVE BUTTON */}
+      <Box sx={{ mt: "40px", textAlign: "right" }}>
         <Button
           variant="contained"
           sx={{
-            backgroundColor: "#0C2548",
-            borderRadius: 2,
+            background: "#0C2548",
+            borderRadius: "8px",
+            width: "90px",
+            height: "40px",
             textTransform: "none",
-            px: 3,
+            fontWeight: 600,
+            fontSize: "14px",
           }}
         >
-          Update
+          Save
         </Button>
-      </Stack>
-
-      {/* Packages */}
-
-      <Stack spacing={3}>
-        {/* Row 1 */}
-        <Stack direction="row" spacing={3}>
-          <PackageCard
-            title="Starter - Free"
-            status="Active"
-            features={[
-              "1 Business Locations",
-              "2 Users",
-              "30 Products",
-              "30 Invoices",
-              "10 Trial Days",
-              "Essentials Module",
-              "WooCommerce Module",
-            ]}
-            priceText="Free for 1 Months"
-            footer="Give it a test drive…"
-            onClick={openSubscriptions}
-          />
-
-          <PackageCard
-            title="Regular"
-            status="Active"
-            features={[
-              "Unlimited Business Locations",
-              "Unlimited Users",
-              "Unlimited Products",
-              "Unlimited Invoices",
-              "10 Trial Days",
-              "Repair Module",
-            ]}
-            priceText="$ 199.99 / 1 Months"
-            footer="For Small Shops"
-            onClick={openSubscriptions}
-          />
-
-          <PackageCard
-            title="Unlimited"
-            status="Active"
-            features={[
-              "Unlimited Business Locations",
-              "Unlimited Users",
-              "Unlimited Products",
-              "Unlimited Invoices",
-              "10 Trial Days",
-            ]}
-            priceText="$ 599.99 / 1 Months"
-            footer="For Large Business"
-            onClick={openSubscriptions}
-          />
-        </Stack>
-
-        {/* Row 2 */}
-        <Stack direction="row">
-          <PackageCard
-            title="Business"
-            status="Inactive"
-            features={[
-              "10 Business Locations",
-              "50 Users",
-              "15000 Products",
-              "1000 Invoices",
-              "10 Trial Days",
-            ]}
-            priceText="$ 259.99 / 1 Months"
-            footer="For Small & Growing Shops…"
-            inactive
-            onClick={openSubscriptions}
-          />
-        </Stack>
-      </Stack>
+      </Box>
     </Box>
-  );
-}
-
-// ---------------------------------------------
-// REUSABLE CARD COMPONENT (Figma accurate)
-// ---------------------------------------------
-function PackageCard({
-  title,
-  status,
-  features,
-  priceText,
-  footer,
-  inactive,
-  onClick,
-}) {
-  const borderColor = inactive ? "#FF4D4D" : "#1BC744";
-
-  return (
-    <Card
-      onClick={onClick}
-      elevation={0}
-      sx={{
-        width: "33%",
-        cursor: "pointer",
-        borderRadius: 3,
-        border: "1px solid #E1E7EF",
-        transition: "0.2s",
-        "&:hover": { boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)" },
-      }}
-    >
-      {/* Top green border */}
-      <Box sx={{ height: 4, backgroundColor: borderColor, borderRadius: "12px 12px 0 0" }} />
-
-      <CardContent>
-        <Stack direction="row" justifyContent="center" alignItems="center" spacing={1}>
-          <Typography fontWeight="700" sx={{ fontSize: 16 }}>
-            {title}
-          </Typography>
-
-          <Chip
-            label={status}
-            size="small"
-            sx={{
-              backgroundColor: inactive ? "#FFD6D6" : "#D2F7DF",
-              color: inactive ? "#C62828" : "#16A34A",
-              height: 22,
-            }}
-          />
-
-          {/* Edit & Delete Icons */}
-          <IconButton size="small">
-            <EditIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-          <IconButton size="small">
-            <DeleteIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Stack>
-
-        {/* Features List */}
-        <Stack spacing={0.2} sx={{ my: 2 }} alignItems="center">
-          {features.map((f, i) => (
-            <Typography key={i} sx={{ fontSize: 13, color: "#4A4A4A" }}>
-              {f}
-            </Typography>
-          ))}
-        </Stack>
-
-        {/* Price */}
-        <Typography
-          fontWeight="700"
-          textAlign="center"
-          sx={{ mt: 1, color: "#1A1A1A", fontSize: 18 }}
-        >
-          {priceText}
-        </Typography>
-
-        <Divider sx={{ my: 1 }} />
-
-        {/* Footer text */}
-        <Typography
-          textAlign="center"
-          sx={{ fontSize: 12, color: "#7A7A7A", mt: 1 }}
-        >
-          {footer}
-        </Typography>
-      </CardContent>
-    </Card>
   );
 }

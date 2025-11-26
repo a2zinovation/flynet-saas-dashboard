@@ -10,14 +10,9 @@ import {
   Stack,
   Avatar,
 } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 
 /**
- * Dashboard (Figma-focused)
- * - Uses public SVG icons at /assets/icons/*
- * - Tries to dynamically import react-leaflet for a live map (graceful fallback to placeholder)
- *
- * Drop this file into src/pages/Dashboard.jsx
+ * Dashboard with responsive Stat Cards
  */
 
 const stats = [
@@ -53,14 +48,16 @@ const stats = [
 
 function StatCard({ stat }) {
   const theme = useTheme();
+
   return (
     <Paper
       elevation={0}
       sx={{
-        p: 2,
+        p: { xs: 2, sm: 2.5 },
         borderRadius: 2,
         border: "1px solid rgba(14, 30, 37, 0.06)",
-        minHeight: 96,
+        minHeight: { xs: 80, sm: 96 },
+        width: "100%",
         display: "flex",
         alignItems: "center",
         backgroundColor: "rgba(255,255,255,0.98)",
@@ -110,67 +107,63 @@ export default function Dashboard() {
   const theme = useTheme();
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapComponents, setMapComponents] = useState(null);
-  const [mapError, setMapError] = useState(false);
 
-  // Try to dynamically import react-leaflet (so dev does not crash if it's not installed)
   useEffect(() => {
     let mounted = true;
+
     async function loadLeaflet() {
       try {
-        // dynamic import - if not installed this will throw and we fall back
         const rl = await import("react-leaflet");
         const L = await import("leaflet");
         if (!mounted) return;
+
         setMapComponents({ ...rl, L });
         setMapLoaded(true);
       } catch (err) {
-        // Not fatal — we will show placeholder image
-        console.warn(
-          "react-leaflet not available — falling back to placeholder map. Install react-leaflet + leaflet to enable real map."
-        );
-        setMapError(true);
+        console.warn("react-leaflet not available — showing placeholder map");
       }
     }
+
     loadLeaflet();
     return () => {
       mounted = false;
     };
   }, []);
 
-  // Default map center (if leaflet loaded)
   const center = [51.505, -0.09];
   const zoom = 13;
 
   return (
     <Box>
-      {/* Top row — Title + action */}
+      {/* Top row — Title */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h5" fontWeight="700">
           Welcome Super
         </Typography>
-
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<img src="/assets/icons/filter.svg" alt="filter" style={{ width: 18 }} />}
-            sx={{ textTransform: "none", borderRadius: 2 }}
-          >
-            Filter by day
-          </Button>
-        </Stack>
       </Box>
 
-      {/* Stat cards */}
-      <Grid container spacing={10} sx={{ mb: 3 }}>
+      {/* 🔥 Responsive Stat Cards */}
+      <Grid
+        container
+        spacing={{ xs: 2, sm: 3, md: 4, lg: 5 }}
+        sx={{ mb: 3 }}
+      >
         {stats.map((s) => (
-          <Grid item xs={12} sm={6} md={3} key={s.id}>
+          <Grid
+            item
+            key={s.id}
+            xs={12}     // 1 per row (mobile)
+            sm={6}      // 2 per row (tablet)
+            md={3}      // 4 per row (desktop)
+            lg={3}      // 4 per row (large desktop)
+            display="flex"
+          >
             <StatCard stat={s} />
           </Grid>
         ))}
       </Grid>
 
-      {/* Map area — card style like Figma */}
+      {/* Map area */}
       <Paper
         elevation={0}
         sx={{
@@ -182,9 +175,7 @@ export default function Dashboard() {
           overflow: "hidden",
         }}
       >
-        {/* If react-leaflet loaded, render map; otherwise use placeholder */}
         {mapComponents ? (
-          // render map using dynamically imported components
           <MapPlaceholderWithLeaflet
             mapComponents={mapComponents}
             center={center}
@@ -193,7 +184,7 @@ export default function Dashboard() {
         ) : (
           <Box
             sx={{
-              height: 420 - 16,
+              height: 404,
               width: "100%",
               display: "flex",
               alignItems: "center",
@@ -203,8 +194,6 @@ export default function Dashboard() {
               backgroundPosition: "center",
               borderRadius: 1,
             }}
-            role="img"
-            aria-label="Map placeholder"
           />
         )}
       </Paper>
@@ -214,18 +203,12 @@ export default function Dashboard() {
 
 /**
  * MapPlaceholderWithLeaflet
- * Renders a basic Leaflet map using the dynamically loaded react-leaflet module (mapComponents).
- * mapComponents must contain MapContainer, TileLayer, Marker, Popup from react-leaflet.
  */
 function MapPlaceholderWithLeaflet({ mapComponents, center, zoom }) {
-  // Pull components from the dynamic import
   const { MapContainer, TileLayer, Marker, Popup } = mapComponents;
 
-  // NOTE: We assume leaflet CSS is included globally (see instructions above)
-  // Also, Marker icon image path fix may be required on some builds — this is a minimal example.
-
   return (
-    <Box sx={{ height: 420 - 16, width: "100%" }}>
+    <Box sx={{ height: 404, width: "100%" }}>
       <MapContainer center={center} zoom={zoom} style={{ height: "100%", width: "100%" }}>
         <TileLayer
           attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'

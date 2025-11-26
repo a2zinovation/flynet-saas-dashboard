@@ -3,237 +3,445 @@ import React, { useState } from "react";
 import {
   Box,
   Typography,
-  Paper,
-  Stack,
+  Grid,
   TextField,
   Button,
   MenuItem,
-  Divider,
-  Grid,
+  InputAdornment,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { useNavigate } from "react-router-dom";
+import InsertPhotoIcon from "@mui/icons-material/InsertPhoto";
+import PublicIcon from "@mui/icons-material/Public";
+import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
+import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 
 export default function AddBusiness() {
-  const navigate = useNavigate();
+  const [form, setForm] = useState({});
 
-  const [form, setForm] = useState({
-    businessName: "",
-    ownerName: "",
-    email: "",
-    phone: "",
-    country: "",
-    city: "",
-    address: "",
-    package: "",
-    notes: "",
-  });
-
-  const handleChange = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert("Business registered successfully (mock)!");
-  };
+  const handle = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   return (
-    <Box>
-      {/* ------- PAGE HEADER ------- */}
-      <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
-        <Button
-          onClick={() => navigate(-1)}
-          startIcon={<ArrowBackIcon />}
-          sx={{ textTransform: "none" }}
-        >
-          Back
-        </Button>
-
-        <Box>
-          <Typography variant="h5" fontWeight="700">
-            Add New Business
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Register a new business into the platform
-          </Typography>
-        </Box>
-      </Stack>
-
-      {/* ------- FORM CARD ------- */}
-      <Paper
-        elevation={0}
+    <Box sx={{ px: "42px", py: "30px", width: "100%" }}>
+      {/* PAGE TITLE */}
+      <Typography
         sx={{
-          p: 3,
-          borderRadius: 2,
-          border: "1px solid #E8EDF2",
+          fontWeight: 700,
+          fontSize: "22px",
+          color: "#0C2548",
+          mb: "24px",
         }}
       >
-        <form onSubmit={handleSubmit}>
-          <Grid container spacing={3}>
-            {/* Business Name */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Business Name *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                placeholder="Enter business name"
-                value={form.businessName}
-                onChange={(e) => handleChange("businessName", e.target.value)}
-              />
-            </Grid>
+        Add New Businesses
+      </Typography>
 
-            {/* Owner Name */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Owner Name *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                placeholder="Enter owner name"
-                value={form.ownerName}
-                onChange={(e) => handleChange("ownerName", e.target.value)}
-              />
-            </Grid>
+      {/* SECTION: BUSINESS DETAILS */}
+      <Typography sx={sectionTitle}>Business details:</Typography>
 
-            {/* Email */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Email *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                type="email"
-                placeholder="owner@email.com"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-              />
-            </Grid>
+      <Grid container columnSpacing={6}>
+        {/* LEFT COLUMN */}
+        <Grid item xs={12} md={6}>
+          {/* Business Name */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Business Name*</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              name="businessName"
+              placeholder="Business Name"
+              onChange={handle}
+              sx={input}
+            />
+          </Box>
 
-            {/* Phone */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Phone Number *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                type="phone"
-                placeholder="+1 123 456 7890"
-                value={form.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
-              />
-            </Grid>
+          {/* Start Date */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Start Date:</Typography>
+            <TextField
+              fullWidth
+              type="date"
+              size="small"
+              name="startDate"
+              onChange={handle}
+              sx={input}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Box>
 
-            {/* Country */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Country *
-              </Typography>
+          {/* Upload Logo */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Upload Logo:</Typography>
+
+            <Box sx={{ display: "flex", gap: 1 }}>
               <TextField
-                select
                 fullWidth
-                required
-                value={form.country}
-                onChange={(e) => handleChange("country", e.target.value)}
+                size="small"
+                placeholder="Upload File"
+                sx={input}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <InsertPhotoIcon
+                        sx={{ fontSize: 18, color: "#6B7280" }}
+                      />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                variant="contained"
+                sx={{
+                  background: "#1A73E8",
+                  textTransform: "none",
+                  borderRadius: "4px",
+                  px: 3,
+                  fontSize: "13px",
+                }}
               >
-                <MenuItem value="USA">USA</MenuItem>
-                <MenuItem value="Canada">Canada</MenuItem>
-                <MenuItem value="UK">UK</MenuItem>
-              </TextField>
-            </Grid>
+                Browse
+              </Button>
+            </Box>
+          </Box>
 
-            {/* City */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                City *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                placeholder="Enter city"
-                value={form.city}
-                onChange={(e) => handleChange("city", e.target.value)}
-              />
-            </Grid>
-
-            {/* Address */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Address *
-              </Typography>
-              <TextField
-                fullWidth
-                required
-                placeholder="Street, building, area..."
-                value={form.address}
-                onChange={(e) => handleChange("address", e.target.value)}
-              />
-            </Grid>
-
-            {/* Package */}
-            <Grid item xs={12} sm={6}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Select Package *
-              </Typography>
-              <TextField
-                select
-                fullWidth
-                required
-                value={form.package}
-                onChange={(e) => handleChange("package", e.target.value)}
-              >
-                <MenuItem value="Starter">Starter - Free</MenuItem>
-                <MenuItem value="Regular">Regular</MenuItem>
-                <MenuItem value="Unlimited">Unlimited</MenuItem>
-              </TextField>
-            </Grid>
-
-            {/* Notes */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Notes (optional)
-              </Typography>
-              <TextField
-                fullWidth
-                multiline
-                minRows={3}
-                placeholder="Internal notes..."
-                value={form.notes}
-                onChange={(e) => handleChange("notes", e.target.value)}
-              />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 3 }} />
-
-          {/* ------- ACTION BUTTONS ------- */}
-          <Stack direction="row" justifyContent="flex-end" spacing={2}>
-            <Button
-              variant="outlined"
-              onClick={() => navigate("/business")}
-              sx={{ textTransform: "none" }}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{
-                textTransform: "none",
-                backgroundColor: "#0C2548",
+          {/* Business contact number */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Business contact number:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Business contact number"
+              name="contact"
+              onChange={handle}
+              sx={input}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneAndroidIcon
+                      sx={{ fontSize: 17, color: "#6B7280" }}
+                    />
+                  </InputAdornment>
+                ),
               }}
+            />
+          </Box>
+
+          {/* Country */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Country*</Typography>
+            <TextField select fullWidth size="small" sx={input}>
+              <MenuItem value="USA">USA</MenuItem>
+              <MenuItem value="Canada">Canada</MenuItem>
+              <MenuItem value="UK">UK</MenuItem>
+            </TextField>
+          </Box>
+
+          {/* City */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>City*</Typography>
+            <TextField fullWidth size="small" placeholder="City" sx={input} />
+          </Box>
+
+          {/* Landmark */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Landmark*</Typography>
+            <TextField fullWidth size="small" placeholder="Landmark" sx={input} />
+          </Box>
+        </Grid>
+
+        {/* RIGHT COLUMN */}
+        <Grid item xs={12} md={6}>
+          {/* Currency */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Currency*</Typography>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              name="currency"
+              onChange={handle}
+              sx={input}
             >
-              Register Business
-            </Button>
-          </Stack>
-        </form>
-      </Paper>
+              <MenuItem value="USD">USD</MenuItem>
+              <MenuItem value="EUR">EUR</MenuItem>
+              <MenuItem value="GBP">GBP</MenuItem>
+            </TextField>
+          </Box>
+
+          {/* Website */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Website:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Website"
+              name="website"
+              onChange={handle}
+              sx={input}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PublicIcon sx={{ fontSize: 17, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {/* Alternate contact number */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Alternate contact number:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Alternate number"
+              sx={input}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneAndroidIcon sx={{ fontSize: 17, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {/* State */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>State*</Typography>
+            <TextField fullWidth size="small" placeholder="State" sx={input} />
+          </Box>
+
+          {/* Zip Code */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Zip Code*</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Zip / Postal Code"
+              sx={input}
+            />
+          </Box>
+
+          {/* Time zone */}
+          <Box sx={fieldBox}>
+            <Typography sx={label}>Time zone*</Typography>
+            <TextField select fullWidth size="small" sx={input}>
+              <MenuItem value="Asia/Kolkata">Asia/Kolkata</MenuItem>
+              <MenuItem value="UTC">UTC</MenuItem>
+              <MenuItem value="EST">EST</MenuItem>
+            </TextField>
+          </Box>
+        </Grid>
+      </Grid>
+
+      {/* OWNER INFORMATION SECTION */}
+<Typography sx={sectionTitle}>Owner information</Typography>
+
+<Grid container spacing={3}>
+
+  {/* Prefix */}
+  <Grid item xs={12} sm={4}>
+    <Typography sx={label}>Prefix:</Typography>
+    <TextField
+      select
+      fullWidth
+      size="small"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    >
+      <MenuItem value="Mr">Mr</MenuItem>
+      <MenuItem value="Mrs">Mrs</MenuItem>
+      <MenuItem value="Miss">Miss</MenuItem>
+    </TextField>
+  </Grid>
+
+  {/* First Name */}
+  <Grid item xs={12} sm={4}>
+    <Typography sx={label}>First Name*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="First Name"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+
+  {/* Last Name */}
+  <Grid item xs={12} sm={4}>
+    <Typography sx={label}>Last Name*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="Last Name"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+
+  {/* Username */}
+  <Grid item xs={12} sm={6}>
+    <Typography sx={label}>Username*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="Username"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+
+  {/* Email */}
+  <Grid item xs={12} sm={6}>
+    <Typography sx={label}>Email*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      type="email"
+      placeholder="Email"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+
+  {/* Password */}
+  <Grid item xs={12} sm={6}>
+    <Typography sx={label}>Password*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      type="password"
+      placeholder="Password"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+
+  {/* Confirm Password */}
+  <Grid item xs={12} sm={6}>
+    <Typography sx={label}>Confirm Password*:</Typography>
+    <TextField
+      fullWidth
+      size="small"
+      type="password"
+      placeholder="Confirm Password"
+      sx={input}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Grid>
+</Grid>
+
+      {/* PACKAGES SECTION */}
+      <Grid container columnSpacing={6} sx={{ mt: "28px" }}>
+        <Grid item xs={12} md={4}>
+          <Typography sx={label}>Packages:</Typography>
+          <TextField select fullWidth size="small" sx={input}>
+            <MenuItem value="Starter">Starter</MenuItem>
+            <MenuItem value="Regular">Regular</MenuItem>
+            <MenuItem value="Unlimited">Unlimited</MenuItem>
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Typography sx={label}>Paid Via:</Typography>
+          <TextField select fullWidth size="small" sx={input}>
+            <MenuItem value="Card">Card</MenuItem>
+            <MenuItem value="Cash">Cash</MenuItem>
+            <MenuItem value="Bank">Bank</MenuItem>
+          </TextField>
+        </Grid>
+
+        <Grid item xs={12} md={4}>
+          <Typography sx={label}>Payment Transaction ID:</Typography>
+          <TextField fullWidth size="small" sx={input} />
+        </Grid>
+      </Grid>
+
+      {/* SUBMIT BUTTON */}
+      <Box sx={{ textAlign: "center", mt: "40px" }}>
+        <Button
+          variant="contained"
+          sx={{
+            background: "#2ECC71",
+            textTransform: "none",
+            px: "38px",
+            height: "40px",
+            borderRadius: "6px",
+            fontWeight: 600,
+            fontSize: "15px",
+          }}
+        >
+          Submit
+        </Button>
+      </Box>
     </Box>
   );
 }
+
+/* ---- STYLES ---- */
+
+const label = {
+  fontWeight: 600,
+  fontSize: "13.5px",
+  color: "#0C2548",
+  mb: "6px",
+};
+
+const input = {
+  "& .MuiOutlinedInput-root": {
+    height: "40px",
+    borderRadius: "6px",
+  },
+};
+
+const fieldBox = { mb: "24px" };
+
+const sectionTitle = {
+  fontWeight: 700,
+  fontSize: "15px",
+  color: "#0C2548",
+  mt: "24px",
+  mb: "12px",
+};

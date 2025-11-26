@@ -1,203 +1,232 @@
 // src/pages/Packages.jsx
-import React, { useState } from "react";
+
+import React from "react";
 import {
   Box,
+  Card,
+  CardContent,
   Typography,
-  TextField,
-  Paper,
   Stack,
-  MenuItem,
   Button,
+  Chip,
+  IconButton,
+  Divider,
 } from "@mui/material";
 
-export default function AddPackage() {
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    locations: "",
-    activeUsers: "",
-    cameras: "",
-    invoices: "",
-    priceInterval: "",
-    interval: "",
-    price: "",
-    trialDays: "",
-  });
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { useNavigate } from "react-router-dom";
 
-  const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+export default function Packages() {
+  const navigate = useNavigate();
+
+  const openSubscriptions = () => navigate("/package-subscription");
 
   return (
     <Box>
-      {/* PAGE TITLE */}
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-        Packages
-      </Typography>
-
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-        All New Package
-      </Typography>
-
-      {/* FORM WRAPPER */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: 4,
-          borderRadius: 2,
-          border: "1px solid #E5E9F2",
-        }}
+      {/* --- Header --- */}
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ mb: 3 }}
       >
-        <Stack direction="row" spacing={4}>
-          {/* LEFT COLUMN */}
-          <Box flex={1}>
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Name:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              sx={{ mb: 3 }}
-            />
+        <Box>
+          <Typography variant="h5" fontWeight="700">
+            Packages
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            All Packages
+          </Typography>
+        </Box>
 
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Number of Locations:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.locations}
-              onChange={(e) => handleChange("locations", e.target.value)}
-              sx={{ mb: 1 }}
-            />
-            <Typography fontSize={12} color="text.secondary" sx={{ mb: 3 }}>
-              0 = Infinite
-            </Typography>
+        {/* ---------------------------------------------- */}
+        {/* FIXED: Add button now opens PackageSubscriptions */}
+        {/* ---------------------------------------------- */}
+        <Button
+          variant="contained"
+          onClick={() => navigate("/package-subscription")}
+          sx={{
+            backgroundColor: "#0C2548",
+            borderRadius: 2,
+            textTransform: "none",
+            px: 3,
+          }}
+        >
+          Add
+        </Button>
+      </Stack>
 
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Number of Cameras:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.cameras}
-              onChange={(e) => handleChange("cameras", e.target.value)}
-              sx={{ mb: 1 }}
-            />
-            <Typography fontSize={12} color="text.secondary" sx={{ mb: 3 }}>
-              0 = Infinite
-            </Typography>
+      {/* Packages */}
+      <Stack spacing={3}>
+        {/* Row 1 */}
+        <Stack direction="row" spacing={3}>
+          <PackageCard
+            title="Starter - Free"
+            status="Active"
+            features={[
+              "1 Business Locations",
+              "2 Users",
+              "30 Products",
+              "30 Invoices",
+              "10 Trial Days",
+              "Essentials Module",
+              "WooCommerce Module",
+            ]}
+            priceText="Free for 1 Months"
+            footer="Give it a test drive…"
+            onClick={openSubscriptions}
+          />
 
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Price Interval:
-            </Typography>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              value={form.priceInterval}
-              onChange={(e) => handleChange("priceInterval", e.target.value)}
-              sx={{ mb: 3 }}
-            >
-              <MenuItem value="">Please Select</MenuItem>
-              <MenuItem value="monthly">Monthly</MenuItem>
-              <MenuItem value="yearly">Yearly</MenuItem>
-            </TextField>
+          <PackageCard
+            title="Regular"
+            status="Active"
+            features={[
+              "Unlimited Business Locations",
+              "Unlimited Users",
+              "Unlimited Products",
+              "Unlimited Invoices",
+              "10 Trial Days",
+              "Repair Module",
+            ]}
+            priceText="$ 199.99 / 1 Months"
+            footer="For Small Shops"
+            onClick={openSubscriptions}
+          />
 
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Trial Days:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.trialDays}
-              onChange={(e) => handleChange("trialDays", e.target.value)}
-            />
-          </Box>
-
-          {/* RIGHT COLUMN */}
-          <Box flex={1}>
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Package Description:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              sx={{ mb: 3 }}
-            />
-
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Number of active users:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.activeUsers}
-              onChange={(e) => handleChange("activeUsers", e.target.value)}
-              sx={{ mb: 1 }}
-            />
-            <Typography fontSize={12} color="text.secondary" sx={{ mb: 3 }}>
-              0 = Infinite
-            </Typography>
-
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Number of invoices:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.invoices}
-              onChange={(e) => handleChange("invoices", e.target.value)}
-              sx={{ mb: 1 }}
-            />
-            <Typography fontSize={12} color="text.secondary" sx={{ mb: 3 }}>
-              0 = Infinite
-            </Typography>
-
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Interval:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.interval}
-              onChange={(e) => handleChange("interval", e.target.value)}
-              sx={{ mb: 3 }}
-            />
-
-            <Typography fontWeight={600} fontSize={13} sx={{ mb: 1 }}>
-              Price:
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              value={form.price}
-              onChange={(e) => handleChange("price", e.target.value)}
-            />
-            <Typography fontSize={12} color="text.secondary" sx={{ mt: 1 }}>
-              0 = Free Package
-            </Typography>
-          </Box>
+          <PackageCard
+            title="Unlimited"
+            status="Active"
+            features={[
+              "Unlimited Business Locations",
+              "Unlimited Users",
+              "Unlimited Products",
+              "Unlimited Invoices",
+              "10 Trial Days",
+            ]}
+            priceText="$ 599.99 / 1 Months"
+            footer="For Large Business"
+            onClick={openSubscriptions}
+          />
         </Stack>
 
-        {/* SAVE BUTTON */}
-        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 4 }}>
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: "#0C2548",
-              textTransform: "none",
-              px: 4,
-            }}
-          >
-            Save
-          </Button>
+        {/* Row 2 */}
+        <Stack direction="row">
+          <PackageCard
+            title="Business"
+            status="Inactive"
+            features={[
+              "10 Business Locations",
+              "50 Users",
+              "15000 Products",
+              "1000 Invoices",
+              "10 Trial Days",
+            ]}
+            priceText="$ 259.99 / 1 Months"
+            footer="For Small & Growing Shops…"
+            inactive
+            onClick={openSubscriptions}
+          />
         </Stack>
-      </Paper>
+      </Stack>
     </Box>
+  );
+}
+
+// ---------------------------------------------
+// REUSABLE CARD COMPONENT (Figma accurate)
+// ---------------------------------------------
+function PackageCard({
+  title,
+  status,
+  features,
+  priceText,
+  footer,
+  inactive,
+  onClick,
+}) {
+  const borderColor = inactive ? "#FF4D4D" : "#1BC744";
+
+  return (
+    <Card
+      onClick={onClick}
+      elevation={0}
+      sx={{
+        width: "33%",
+        cursor: "pointer",
+        borderRadius: 3,
+        border: "1px solid #E1E7EF",
+        transition: "0.2s",
+        "&:hover": { boxShadow: "0 6px 20px rgba(0, 0, 0, 0.12)" },
+      }}
+    >
+      {/* Top green/red border */}
+      <Box
+        sx={{
+          height: 4,
+          backgroundColor: borderColor,
+          borderRadius: "12px 12px 0 0",
+        }}
+      />
+
+      <CardContent>
+        <Stack
+          direction="row"
+          justifyContent="center"
+          alignItems="center"
+          spacing={1}
+        >
+          <Typography fontWeight="700" sx={{ fontSize: 16 }}>
+            {title}
+          </Typography>
+
+          <Chip
+            label={status}
+            size="small"
+            sx={{
+              backgroundColor: inactive ? "#FFD6D6" : "#D2F7DF",
+              color: inactive ? "#C62828" : "#16A34A",
+              height: 22,
+            }}
+          />
+
+          {/* Edit & Delete Icons */}
+          <IconButton size="small">
+            <EditIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+          <IconButton size="small">
+            <DeleteIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Stack>
+
+        {/* Features */}
+        <Stack spacing={0.2} sx={{ my: 2 }} alignItems="center">
+          {features.map((f, i) => (
+            <Typography key={i} sx={{ fontSize: 13, color: "#4A4A4A" }}>
+              {f}
+            </Typography>
+          ))}
+        </Stack>
+
+        {/* Price */}
+        <Typography
+          fontWeight="700"
+          textAlign="center"
+          sx={{ mt: 1, color: "#1A1A1A", fontSize: 18 }}
+        >
+          {priceText}
+        </Typography>
+
+        <Divider sx={{ my: 1 }} />
+
+        {/* Footer */}
+        <Typography
+          textAlign="center"
+          sx={{ fontSize: 12, color: "#7A7A7A", mt: 1 }}
+        >
+          {footer}
+        </Typography>
+      </CardContent>
+    </Card>
   );
 }

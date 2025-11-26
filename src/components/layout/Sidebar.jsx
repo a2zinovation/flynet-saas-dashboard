@@ -15,7 +15,6 @@ import {
 
 import { useNavigate, useLocation } from "react-router-dom";
 
-// Figma Icons
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import BusinessCenterOutlinedIcon from "@mui/icons-material/BusinessCenterOutlined";
 import SellOutlinedIcon from "@mui/icons-material/SellOutlined";
@@ -40,15 +39,15 @@ export default function Sidebar({
   const theme = useTheme();
 
   const MenuItems = [
-    { label: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/dashboard" },
-    { label: "All Business", icon: <BusinessCenterOutlinedIcon />, path: "/all-business" },
-    { label: "Package Subscription", icon: <SellOutlinedIcon />, path: "/package-subscription" },
-    { label: "Packages", icon: <Inventory2OutlinedIcon />, path: "/packages" },
-    { label: "Reports", icon: <AssessmentOutlinedIcon />, path: "/reports" },
-    { label: "Communicator", icon: <ChatOutlinedIcon />, path: "/communicator" },
-    { label: "Notification center", icon: <NotificationsNoneOutlinedIcon />, path: "/notification-center" },
-    { label: "Settings", icon: <SettingsOutlinedIcon />, path: "/settings" },
-  ];
+  { label: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/dashboard" },
+  { label: "All Business", icon: <BusinessCenterOutlinedIcon />, path: "/all-business" },
+  { label: "Packages", icon: <Inventory2OutlinedIcon />, path: "/packages" },
+  { label: "Reports", icon: <AssessmentOutlinedIcon />, path: "/reports" },
+  { label: "Communicator", icon: <ChatOutlinedIcon />, path: "/communicator" },
+  { label: "Notification center", icon: <NotificationsNoneOutlinedIcon />, path: "/notification-center" },
+  { label: "Settings", icon: <SettingsOutlinedIcon />, path: "/settings" },
+];
+
 
   const effectiveWidth = isCollapsed ? collapsedWidth : drawerWidth;
 
@@ -61,69 +60,91 @@ export default function Sidebar({
         px: isCollapsed ? 0.5 : 2,
         pt: 2,
         position: "relative",
-        // keep it above header so icons remain clickable
         zIndex: 2000,
         overflow: "hidden",
       }}
     >
-      {/* LOGO + COLLAPSE CONTROL */}
+
+      {/* ----------------------------------------------------- */}
+      {/* LOGO + COLLAPSE / EXPAND BUTTONS */}
+      {/* ----------------------------------------------------- */}
       <Box
         sx={{
           width: "100%",
           display: "flex",
+          flexDirection: isCollapsed ? "column" : "row",
           alignItems: "center",
           justifyContent: isCollapsed ? "center" : "space-between",
           mb: 3,
           px: isCollapsed ? 0.5 : 0,
+          transition: "all 0.2s ease",
         }}
       >
-        {/* Logo — hide text when collapsed, but keep image centered */}
+        {/* LOGO */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1,
             cursor: "pointer",
-            ...(isCollapsed && { justifyContent: "center", width: "100%" }),
+            justifyContent: "center",
+            width: isCollapsed ? "100%" : "auto",
+            mb: isCollapsed ? 1.2 : 0,
           }}
           onClick={() => navigate("/dashboard")}
         >
           <img
-            src="/assets/flynet-logo.png"
+            src={isCollapsed ? "/assets/short-logo.png" : "/assets/flynet-logo.png"}
             alt="Flynet Logo"
             style={{
-              height: 36,
+              height: isCollapsed ? 40 : 36,
+              maxWidth: isCollapsed ? 40 : 160,
               objectFit: "contain",
-              display: "block",
-              marginLeft: isCollapsed ? 0 : undefined,
+              transition: "all 0.16s ease",
             }}
           />
         </Box>
 
-        {/* Collapse / Expand Button */}
-        <Box sx={{ display: isCollapsed ? "none" : "block" }}>
+        {/* COLLAPSE BUTTON (expanded view) */}
+        {!isCollapsed && (
           <IconButton
             onClick={() => setIsCollapsed(true)}
-            sx={{ color: "#0C2548", mr: -1 }}
+            sx={{ color: "#0C2548" }}
             aria-label="Collapse sidebar"
             size="small"
           >
             <MenuIcon sx={{ fontSize: 22 }} />
           </IconButton>
-        </Box>
+        )}
 
-        {/* When collapsed show a compact toggle */}
-        {!isCollapsed && null}
+        {/* EXPAND BUTTON (collapsed view) */}
+        {isCollapsed && (
+          <IconButton
+            onClick={() => setIsCollapsed(false)}
+            aria-label="Expand sidebar"
+            sx={{
+              bgcolor: theme.palette.background.paper,
+              border: "1px solid rgba(12,37,72,0.06)",
+              width: 36,
+              height: 36,
+              transition: "all 0.16s ease",
+            }}
+            size="small"
+          >
+            <ChevronLeftIcon sx={{ transform: "rotate(180deg)" }} />
+          </IconButton>
+        )}
       </Box>
 
       <Divider />
 
+      {/* ----------------------------------------------------- */}
       {/* MENU ITEMS */}
+      {/* ----------------------------------------------------- */}
       <List sx={{ mt: 1, px: isCollapsed ? 0 : 1 }}>
         {MenuItems.map((item, i) => {
           const active = location.pathname === item.path;
 
-          // item content when collapsed — show only icon with tooltip
+          /* COLLAPSED MODE — Icons only */
           if (isCollapsed) {
             return (
               <Tooltip title={item.label} placement="right" key={i}>
@@ -133,7 +154,6 @@ export default function Sidebar({
                     mb: 1,
                     borderRadius: "8px",
                     height: 56,
-                    minWidth: "auto",
                     justifyContent: "center",
                     px: 1,
                     backgroundColor: active ? "#0C2548" : "transparent",
@@ -143,7 +163,7 @@ export default function Sidebar({
                   <ListItemIcon
                     sx={{
                       color: active ? "#ffffff" : "#0C2548",
-                      minWidth: "0px",
+                      minWidth: 0,
                       display: "flex",
                       justifyContent: "center",
                       "& svg": { fontSize: 20 },
@@ -156,7 +176,7 @@ export default function Sidebar({
             );
           }
 
-          // normal (expanded) item
+          /* EXPANDED MODE — Label + Icon */
           return (
             <ListItemButton
               key={i}
@@ -168,9 +188,9 @@ export default function Sidebar({
                 px: 2,
                 backgroundColor: active ? "#0C2548" : "transparent",
                 "&:hover": {
-                  backgroundColor: active ? "#0C2548" : "rgba(12, 37, 72, 0.05)",
+                  backgroundColor: active ? "#0C2548" : "rgba(12,37,72,0.05)",
                 },
-                transition: "background-color 0.12s ease",
+                transition: "0.12s ease",
               }}
             >
               <ListItemIcon
@@ -196,32 +216,13 @@ export default function Sidebar({
         })}
       </List>
 
-      {/* Footer area: show small expand control when collapsed */}
       <Box sx={{ flexGrow: 1 }} />
-
-      {isCollapsed ? (
-        <Box sx={{ display: "flex", justifyContent: "center", pb: 2 }}>
-          <IconButton
-            onClick={() => setIsCollapsed(false)}
-            aria-label="Expand sidebar"
-            sx={{
-              bgcolor: theme.palette.background.paper,
-              border: "1px solid rgba(12,37,72,0.06)",
-              width: 36,
-              height: 36,
-            }}
-            size="small"
-          >
-            <ChevronLeftIcon sx={{ transform: "rotate(180deg)" }} />
-          </IconButton>
-        </Box>
-      ) : null}
     </Box>
   );
 
   return (
     <>
-      {/* Mobile Drawer (temporary) */}
+      {/* MOBILE SIDEBAR */}
       <Drawer
         variant="temporary"
         open={mobileOpen}
@@ -239,7 +240,7 @@ export default function Sidebar({
         {drawerContent}
       </Drawer>
 
-      {/* Desktop Drawer (permanent) */}
+      {/* DESKTOP SIDEBAR */}
       <Drawer
         variant="permanent"
         open
@@ -248,9 +249,9 @@ export default function Sidebar({
           "& .MuiDrawer-paper": {
             width: effectiveWidth,
             boxSizing: "border-box",
-            zIndex: 2000,
             transition: "width 0.16s ease",
             overflowX: "hidden",
+            zIndex: 2000,
           },
         }}
       >
