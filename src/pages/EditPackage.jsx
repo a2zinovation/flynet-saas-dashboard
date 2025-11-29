@@ -1,5 +1,5 @@
-// src/pages/AddPackage.jsx
-import React, { useState } from "react";
+// src/pages/EditPackage.jsx
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -15,12 +15,15 @@ import {
   FormControlLabel,
   Divider,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import packageService from "../services/packageService";
 
-export default function AddPackage() {
+export default function EditPackage() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  
   const [form, setForm] = useState({
+    id: "",
     name: "",
     description: "",
     price: "",
@@ -34,9 +37,41 @@ export default function AddPackage() {
     motion_detection_enabled: true,
     features: [],
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    fetchPackage();
+  }, [id]);
+
+  const fetchPackage = async () => {
+    setLoading(true);
+    const result = await packageService.getById(id);
+    
+    if (result.success) {
+      const pkg = result.data;
+      setForm({
+        id: pkg.id,
+        name: pkg.name || "",
+        description: pkg.description || "",
+        price: pkg.price || "",
+        duration_type: pkg.duration_type || "month",
+        max_cameras: pkg.max_cameras || 10,
+        max_locations: pkg.max_locations || 5,
+        max_users: pkg.max_users || 10,
+        analytics_enabled: pkg.analytics_enabled === 1 || pkg.analytics_enabled === true,
+        api_access_enabled: pkg.api_access_enabled === 1 || pkg.api_access_enabled === true,
+        recording_enabled: pkg.recording_enabled === 1 || pkg.recording_enabled === true,
+        motion_detection_enabled: pkg.motion_detection_enabled === 1 || pkg.motion_detection_enabled === true,
+        features: pkg.features?.map(f => f.id) || [],
+      });
+    } else {
+      setError(result.message || "Failed to load package");
+    }
+    setLoading(false);
+  };
 
   const handle = (e) => {
     const { name, value } = e.target;
@@ -50,12 +85,13 @@ export default function AddPackage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
     setError("");
     setSuccess("");
 
     // Prepare data for API
     const packageData = {
+      id: form.id,
       name: form.name,
       description: form.description,
       price: parseFloat(form.price) || 0,
@@ -67,22 +103,30 @@ export default function AddPackage() {
       api_access_enabled: form.api_access_enabled ? 1 : 0,
       recording_enabled: form.recording_enabled ? 1 : 0,
       motion_detection_enabled: form.motion_detection_enabled ? 1 : 0,
-      features: [], // Features can be added later through separate UI
+      features: form.features,
     };
 
-    const result = await packageService.create(packageData);
+    const result = await packageService.update(packageData);
 
     if (result.success) {
-      setSuccess("Package created successfully!");
+      setSuccess("Package updated successfully!");
       setTimeout(() => {
         navigate("/packages");
       }, 2000);
     } else {
-      setError(result.message || "Failed to create package");
+      setError(result.message || "Failed to update package");
     }
 
-    setLoading(false);
+    setSaving(false);
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -92,7 +136,7 @@ export default function AddPackage() {
           Packages
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Add New Package
+          Edit Package
         </Typography>
       </Box>
 
@@ -132,7 +176,7 @@ export default function AddPackage() {
                 onChange={handle}
                 placeholder="e.g., Premium Package"
                 required
-                disabled={loading}
+                disabled={saving}
               />
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
@@ -146,7 +190,7 @@ export default function AddPackage() {
                 onChange={handle}
                 placeholder="Brief description of package"
                 required
-                disabled={loading}
+                disabled={saving}
                 multiline
                 rows={3}
               />
@@ -163,7 +207,7 @@ export default function AddPackage() {
                 onChange={handle}
                 placeholder="0"
                 required
-                disabled={loading}
+                disabled={saving}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">USD $</InputAdornment>
@@ -188,13 +232,19 @@ export default function AddPackage() {
                 value={form.duration_type}
                 onChange={handle}
                 required
-                disabled={loading}
+                disabled={saving}
               >
                 <MenuItem value="day">Daily</MenuItem>
                 <MenuItem value="week">Weekly</MenuItem>
                 <MenuItem value="month">Monthly</MenuItem>
                 <MenuItem value="year">Yearly</MenuItem>
               </TextField>
+
+              {/* <Box sx={{ mt: 3, p: 2, bgcolor: "#F9FAFB", borderRadius: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Package ID:</strong> {form.id}
+                </Typography>
+              </Box> */}
             </Grid>
 
             {/* PACKAGE LIMITS SECTION */}
@@ -218,7 +268,7 @@ export default function AddPackage() {
                 value={form.max_cameras}
                 onChange={handle}
                 required
-                disabled={loading}
+                disabled={saving}
                 inputProps={{ min: 0 }}
               />
 
@@ -233,7 +283,7 @@ export default function AddPackage() {
                 value={form.max_locations}
                 onChange={handle}
                 required
-                disabled={loading}
+                disabled={saving}
                 inputProps={{ min: 0 }}
               />
 
@@ -248,7 +298,7 @@ export default function AddPackage() {
                 value={form.max_users}
                 onChange={handle}
                 required
-                disabled={loading}
+                disabled={saving}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -265,7 +315,7 @@ export default function AddPackage() {
                     checked={form.analytics_enabled}
                     onChange={handleCheckbox}
                     name="analytics_enabled"
-                    disabled={loading}
+                    disabled={saving}
                   />
                 }
                 label="Analytics Enabled"
@@ -277,7 +327,7 @@ export default function AddPackage() {
                     checked={form.api_access_enabled}
                     onChange={handleCheckbox}
                     name="api_access_enabled"
-                    disabled={loading}
+                    disabled={saving}
                   />
                 }
                 label="API Access Enabled"
@@ -290,7 +340,7 @@ export default function AddPackage() {
                     checked={form.recording_enabled}
                     onChange={handleCheckbox}
                     name="recording_enabled"
-                    disabled={loading}
+                    disabled={saving}
                   />
                 }
                 label="Recording Enabled"
@@ -303,7 +353,7 @@ export default function AddPackage() {
                     checked={form.motion_detection_enabled}
                     onChange={handleCheckbox}
                     name="motion_detection_enabled"
-                    disabled={loading}
+                    disabled={saving}
                   />
                 }
                 label="Motion Detection Enabled"
@@ -317,7 +367,7 @@ export default function AddPackage() {
             <Button
               variant="outlined"
               onClick={() => navigate("/packages")}
-              disabled={loading}
+              disabled={saving}
               sx={{
                 borderRadius: 2,
                 textTransform: "none",
@@ -329,7 +379,7 @@ export default function AddPackage() {
             <Button
               type="submit"
               variant="contained"
-              disabled={loading}
+              disabled={saving}
               sx={{
                 backgroundColor: "#0C2548",
                 borderRadius: 2,
@@ -337,7 +387,7 @@ export default function AddPackage() {
                 px: 4,
               }}
             >
-              {loading ? <CircularProgress size={24} color="inherit" /> : "Save Package"}
+              {saving ? <CircularProgress size={24} color="inherit" /> : "Update Package"}
             </Button>
           </Box>
         </form>

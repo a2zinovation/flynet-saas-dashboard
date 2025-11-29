@@ -1,7 +1,29 @@
-import React from "react";
-import { Box, Paper, TextField, Button, Typography, Checkbox, FormControlLabel } from "@mui/material";
+import React, { useState } from "react";
+import { Box, Paper, TextField, Button, Typography, Checkbox, FormControlLabel, Alert, CircularProgress } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SuperAdminLogin() {
+  const { login, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    const result = await login(email, password);
+
+    if (result.success) {
+      navigate("/dashboard");
+    } else {
+      setError(result.message || "Login failed. Please try again.");
+    }
+  };
+
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
       <Box sx={{ flex: 1, background: "#0f4a85", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -17,10 +39,44 @@ export default function SuperAdminLogin() {
             Login to your Super admin
           </Typography>
 
-          <TextField fullWidth label="User name" sx={{ mb: 2 }} />
-          <TextField fullWidth label="Password" type="password" sx={{ mb: 2 }} />
-          <FormControlLabel control={<Checkbox />} label="Remember Me" />
-          <Button fullWidth variant="contained" sx={{ mt: 2 }}>Login</Button>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <TextField 
+              fullWidth 
+              label="Email" 
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
+              required
+              sx={{ mb: 2 }} 
+            />
+            <TextField 
+              fullWidth 
+              label="Password" 
+              type="password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
+              required
+              sx={{ mb: 2 }} 
+            />
+            <FormControlLabel control={<Checkbox />} label="Remember Me" />
+            <Button 
+              fullWidth 
+              variant="contained" 
+              type="submit"
+              disabled={loading}
+              sx={{ mt: 2 }}
+            >
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
+            </Button>
+          </form>
         </Paper>
       </Box>
     </Box>

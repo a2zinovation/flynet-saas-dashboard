@@ -8,7 +8,10 @@ import MainLayout from "./layouts/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import AllBusiness from "./pages/AllBusiness";
 import AddBusiness from "./pages/AddBusiness";
+import EditBusiness from "./pages/EditBusiness";
 import Packages from "./pages/Packages";
+import AddPackage from "./pages/AddPackage";
+import EditPackage from "./pages/EditPackage";
 import PackageSubscriptions from "./pages/PackageSubscriptions";
 import Reports from "./pages/Reports";
 import Communicator from "./pages/Communicator";
@@ -40,8 +43,11 @@ export default function App() {
 
         <Route path="/all-business" element={<AllBusiness />} />
         <Route path="/add-business" element={<AddBusiness />} />
+        <Route path="/edit-business/:id" element={<EditBusiness />} />
 
         <Route path="/packages" element={<Packages />} />
+        <Route path="/add-package" element={<AddPackage />} />
+        <Route path="/edit-package/:id" element={<EditPackage />} />
         <Route path="/package-subscription" element={<PackageSubscriptions />} />
 
         <Route path="/reports" element={<Reports />} />

@@ -1,6 +1,6 @@
 // src/pages/Packages.jsx
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -11,16 +11,78 @@ import {
   Chip,
   IconButton,
   Divider,
+  CircularProgress,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useNavigate } from "react-router-dom";
+import packageService from "../services/packageService";
 
 export default function Packages() {
   const navigate = useNavigate();
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
 
-  const openSubscriptions = () => navigate("/package-subscription");
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    setLoading(true);
+    setError("");
+    const result = await packageService.getAll();
+    
+    if (result.success) {
+      setPackages(result.data);
+    } else {
+      setError(result.message || "Failed to load packages");
+    }
+    setLoading(false);
+  };
+
+  const handleToggleStatus = async (id) => {
+    const result = await packageService.toggleStatus(id);
+    if (result.success) {
+      setSuccess("Package status updated successfully");
+      fetchPackages();
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(result.message || "Failed to update status");
+    }
+  };
+
+  const handleDeleteClick = (id, event) => {
+    event.stopPropagation();
+    setDeleteDialog({ open: true, id });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const result = await packageService.delete(deleteDialog.id);
+    if (result.success) {
+      setSuccess("Package deleted successfully");
+      fetchPackages();
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(result.message || "Failed to delete package");
+    }
+    setDeleteDialog({ open: false, id: null });
+  };
+
+  const handleEdit = (id, event) => {
+    event.stopPropagation();
+    navigate(`/edit-package/${id}`);
+  };
+
+  const openSubscriptions = (id) => navigate(`/edit-package/${id}`);
 
   return (
     <Box>
@@ -40,12 +102,9 @@ export default function Packages() {
           </Typography>
         </Box>
 
-        {/* ---------------------------------------------- */}
-        {/* FIXED: Add button now opens PackageSubscriptions */}
-        {/* ---------------------------------------------- */}
         <Button
           variant="contained"
-          onClick={() => navigate("/package-subscription")}
+          onClick={() => navigate("/add-package")}
           sx={{
             backgroundColor: "#0C2548",
             borderRadius: 2,
@@ -57,78 +116,69 @@ export default function Packages() {
         </Button>
       </Stack>
 
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess("")}>
+          {success}
+        </Alert>
+      )}
+
       {/* Packages */}
-      <Stack spacing={3}>
-        {/* Row 1 */}
-        <Stack direction="row" spacing={3}>
-          <PackageCard
-            title="Starter - Free"
-            status="Active"
-            features={[
-              "1 Business Locations",
-              "2 Users",
-              "30 Products",
-              "30 Invoices",
-              "10 Trial Days",
-              "Essentials Module",
-              "WooCommerce Module",
-            ]}
-            priceText="Free for 1 Months"
-            footer="Give it a test drive…"
-            onClick={openSubscriptions}
-          />
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress />
+        </Box>
+      ) : packages.length === 0 ? (
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <Typography color="text.secondary">No packages available</Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+          {packages.map((pkg) => (
+            <PackageCard
+              key={pkg.id}
+              id={pkg.id}
+              title={pkg.name}
+              status={pkg.is_active ? "Active" : "Inactive"}
+              features={{
+                max_cameras: pkg.max_cameras,
+                max_locations: pkg.max_locations,
+                max_users: pkg.max_users,
+                analytics_enabled: pkg.analytics_enabled === 1 || pkg.analytics_enabled === true,
+                api_access_enabled: pkg.api_access_enabled === 1 || pkg.api_access_enabled === true,
+                recording_enabled: pkg.recording_enabled === 1 || pkg.recording_enabled === true,
+                motion_detection_enabled: pkg.motion_detection_enabled === 1 || pkg.motion_detection_enabled === true,
+              }}
+              priceText={`$ ${pkg.price} / ${pkg.duration_type}`}
+              footer={pkg.description || "Package details"}
+              inactive={!pkg.is_active}
+              onClick={() => openSubscriptions(pkg.id)}
+              onEdit={handleEdit}
+              onDelete={handleDeleteClick}
+              onToggleStatus={handleToggleStatus}
+            />
+          ))}
+        </Box>
+      )}
 
-          <PackageCard
-            title="Regular"
-            status="Active"
-            features={[
-              "Unlimited Business Locations",
-              "Unlimited Users",
-              "Unlimited Products",
-              "Unlimited Invoices",
-              "10 Trial Days",
-              "Repair Module",
-            ]}
-            priceText="$ 199.99 / 1 Months"
-            footer="For Small Shops"
-            onClick={openSubscriptions}
-          />
-
-          <PackageCard
-            title="Unlimited"
-            status="Active"
-            features={[
-              "Unlimited Business Locations",
-              "Unlimited Users",
-              "Unlimited Products",
-              "Unlimited Invoices",
-              "10 Trial Days",
-            ]}
-            priceText="$ 599.99 / 1 Months"
-            footer="For Large Business"
-            onClick={openSubscriptions}
-          />
-        </Stack>
-
-        {/* Row 2 */}
-        <Stack direction="row">
-          <PackageCard
-            title="Business"
-            status="Inactive"
-            features={[
-              "10 Business Locations",
-              "50 Users",
-              "15000 Products",
-              "1000 Invoices",
-              "10 Trial Days",
-            ]}
-            priceText="$ 259.99 / 1 Months"
-            footer="For Small & Growing Shops…"
-            inactive
-            onClick={openSubscriptions}
-          />
-        </Stack>
-      </Stack>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this package? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, id: null })}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -137,6 +187,7 @@ export default function Packages() {
 // REUSABLE CARD COMPONENT (Figma accurate)
 // ---------------------------------------------
 function PackageCard({
+  id,
   title,
   status,
   features,
@@ -144,6 +195,9 @@ function PackageCard({
   footer,
   inactive,
   onClick,
+  onEdit,
+  onDelete,
+  onToggleStatus,
 }) {
   const borderColor = inactive ? "#FF4D4D" : "#1BC744";
 
@@ -152,7 +206,7 @@ function PackageCard({
       onClick={onClick}
       elevation={0}
       sx={{
-        width: "33%",
+        width: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(33.333% - 16px)" },
         cursor: "pointer",
         borderRadius: 3,
         border: "1px solid #E1E7EF",
@@ -183,29 +237,54 @@ function PackageCard({
           <Chip
             label={status}
             size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleStatus(id);
+            }}
             sx={{
               backgroundColor: inactive ? "#FFD6D6" : "#D2F7DF",
               color: inactive ? "#C62828" : "#16A34A",
               height: 22,
+              cursor: "pointer",
             }}
           />
 
           {/* Edit & Delete Icons */}
-          <IconButton size="small">
+          <IconButton 
+            size="small"
+            onClick={(e) => onEdit(id, e)}
+          >
             <EditIcon sx={{ fontSize: 16 }} />
           </IconButton>
-          <IconButton size="small">
+          <IconButton 
+            size="small"
+            onClick={(e) => onDelete(id, e)}
+          >
             <DeleteIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Stack>
 
-        {/* Features */}
-        <Stack spacing={0.2} sx={{ my: 2 }} alignItems="center">
-          {features.map((f, i) => (
-            <Typography key={i} sx={{ fontSize: 13, color: "#4A4A4A" }}>
-              {f}
-            </Typography>
-          ))}
+        {/* Package Limits */}
+        <Stack spacing={1} sx={{ my: 2 }}>
+          <Typography sx={{ fontSize: 13, color: "#4A4A4A", fontWeight: 500 }}>
+            📹 Cameras: {features.max_cameras || 10} | 📍 Locations: {features.max_locations || 5} | 👥 Users: {features.max_users || 10}
+          </Typography>
+          
+          {/* Features */}
+          <Stack direction="row" spacing={0.5} flexWrap="wrap" justifyContent="center" sx={{ mt: 1 }}>
+            {features.analytics_enabled && (
+              <Chip label="Analytics" size="small" sx={{ fontSize: 10, height: 20 }} />
+            )}
+            {features.api_access_enabled && (
+              <Chip label="API Access" size="small" sx={{ fontSize: 10, height: 20 }} />
+            )}
+            {features.recording_enabled && (
+              <Chip label="Recording" size="small" sx={{ fontSize: 10, height: 20 }} />
+            )}
+            {features.motion_detection_enabled && (
+              <Chip label="Motion Detection" size="small" sx={{ fontSize: 10, height: 20 }} />
+            )}
+          </Stack>
         </Stack>
 
         {/* Price */}

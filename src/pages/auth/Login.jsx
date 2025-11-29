@@ -1,23 +1,26 @@
 import React, { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, Checkbox, FormControlLabel } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, Checkbox, FormControlLabel, Alert, CircularProgress } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = login(email, password);
+    setError("");
 
-    if (res.success) {
+    const result = await login(email, password);
+
+    if (result.success) {
       navigate("/dashboard");
     } else {
-      alert(res.message);
+      setError(result.message || "Login failed. Please try again.");
     }
   };
 
@@ -62,13 +65,22 @@ export default function Login() {
             Login to your Super admin
           </Typography>
 
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
-              label="User name"
+              label="Email"
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               sx={{ mb: 2 }}
+              required
+              disabled={loading}
             />
 
             <TextField
@@ -78,6 +90,8 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               sx={{ mb: 2 }}
+              required
+              disabled={loading}
             />
 
             <FormControlLabel control={<Checkbox />} label="Remember Me" />
@@ -86,6 +100,7 @@ export default function Login() {
               type="submit"
               fullWidth
               variant="contained"
+              disabled={loading}
               sx={{
                 mt: 2,
                 py: 1.2,
@@ -93,7 +108,7 @@ export default function Login() {
                 backgroundColor: "#0C2548"
               }}
             >
-              Login
+              {loading ? <CircularProgress size={24} color="inherit" /> : "Login"}
             </Button>
           </form>
         </Paper>
