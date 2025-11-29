@@ -1,31 +1,53 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import authService from "../services/authService";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("flynet_user");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser] = useState(() => authService.getCurrentUser());
+  const [loading, setLoading] = useState(false);
 
-  const login = (email, password) => {
-    // 🔥 Demo login only — replace with API later
-    if (email === "admin@flynet.com" && password === "admin123") {
-      const userData = { email };
-      localStorage.setItem("flynet_user", JSON.stringify(userData));
-      setUser(userData);
-      return { success: true };
+  const login = async (email, password) => {
+    setLoading(true);
+    try {
+      const result = await authService.login(email, password);
+      if (result.success) {
+        setUser(result.data);
+      }
+      return result;
+    } finally {
+      setLoading(false);
     }
-    return { success: false, message: "Invalid credentials" };
   };
 
-  const logout = () => {
-    localStorage.removeItem("flynet_user");
-    setUser(null);
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await authService.logout();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const refreshToken = async () => {
+    const result = await authService.refreshToken();
+    return result.success;
+  };
+
+  // Auto-refresh token every 30 minutes
+  useEffect(() => {
+    if (user) {
+      const interval = setInterval(() => {
+        refreshToken();
+      }, 30 * 60 * 1000); // 30 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

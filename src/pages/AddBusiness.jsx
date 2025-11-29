@@ -1,5 +1,5 @@
 // src/pages/AddBusiness.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -8,17 +8,88 @@ import {
   Button,
   MenuItem,
   InputAdornment,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import InsertPhotoIcon from "@mui/icons-material/InsertPhoto";
 import PublicIcon from "@mui/icons-material/Public";
 import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
+import businessService from "../services/businessService";
+import packageService from "../services/packageService";
 
 export default function AddBusiness() {
-  const [form, setForm] = useState({});
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: "",
+    domain: "",
+    owner: "",
+    email: "",
+    phone: "",
+    address: "",
+    website: "",
+    subscription_package_id: "",
+  });
+  const [logo, setLogo] = useState(null);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const fetchPackages = async () => {
+    const result = await packageService.getAll();
+    if (result.success) {
+      setPackages(result.data);
+    }
+  };
 
   const handle = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleLogoChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogo(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    const formData = new FormData();
+    formData.append("name", form.name);
+    formData.append("domain", form.domain || form.name.toLowerCase().replace(/\s+/g, "-"));
+    formData.append("owner", form.owner);
+    formData.append("email", form.email);
+    formData.append("phone", form.phone);
+    formData.append("address", form.address);
+    formData.append("website", form.website);
+    formData.append("subscription_package_id", form.subscription_package_id);
+    
+    if (logo) {
+      formData.append("logo", logo);
+    }
+
+    const result = await businessService.create(formData);
+
+    if (result.success) {
+      setSuccess("Business created successfully!");
+      setTimeout(() => {
+        navigate("/all-business");
+      }, 2000);
+    } else {
+      setError(result.message || "Failed to create business");
+    }
+
+    setLoading(false);
+  };
 
   return (
     <Box sx={{ px: "42px", py: "30px", width: "100%" }}>
@@ -34,8 +105,21 @@ export default function AddBusiness() {
         Add New Businesses
       </Typography>
 
-      {/* SECTION: BUSINESS DETAILS */}
-      <Typography sx={sectionTitle}>Business details:</Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit}>
+        {/* SECTION: BUSINESS DETAILS */}
+        <Typography sx={sectionTitle}>Business details:</Typography>
 
       <Grid container columnSpacing={6}>
         {/* LEFT COLUMN */}
@@ -46,24 +130,28 @@ export default function AddBusiness() {
             <TextField
               fullWidth
               size="small"
-              name="businessName"
+              name="name"
+              value={form.name}
               placeholder="Business Name"
               onChange={handle}
               sx={input}
+              required
+              disabled={loading}
             />
           </Box>
 
-          {/* Start Date */}
+          {/* Domain */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>Start Date:</Typography>
+            <Typography sx={label}>Domain:</Typography>
             <TextField
               fullWidth
-              type="date"
               size="small"
-              name="startDate"
+              name="domain"
+              value={form.domain}
+              placeholder="business-domain"
               onChange={handle}
               sx={input}
-              InputLabelProps={{ shrink: true }}
+              disabled={loading}
             />
           </Box>
 
@@ -75,7 +163,7 @@ export default function AddBusiness() {
               <TextField
                 fullWidth
                 size="small"
-                placeholder="Upload File"
+                placeholder={logo ? logo.name : "Upload File"}
                 sx={input}
                 InputProps={{
                   startAdornment: (
@@ -85,11 +173,14 @@ export default function AddBusiness() {
                       />
                     </InputAdornment>
                   ),
+                  readOnly: true,
                 }}
               />
 
               <Button
                 variant="contained"
+                component="label"
+                disabled={loading}
                 sx={{
                   background: "#1A73E8",
                   textTransform: "none",
@@ -99,20 +190,29 @@ export default function AddBusiness() {
                 }}
               >
                 Browse
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
               </Button>
             </Box>
           </Box>
 
           {/* Business contact number */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>Business contact number:</Typography>
+            <Typography sx={label}>Business contact number*:</Typography>
             <TextField
               fullWidth
               size="small"
               placeholder="Business contact number"
-              name="contact"
+              name="phone"
+              value={form.phone}
               onChange={handle}
               sx={input}
+              required
+              disabled={loading}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -125,58 +225,54 @@ export default function AddBusiness() {
             />
           </Box>
 
-          {/* Country */}
+          {/* Owner */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>Country*</Typography>
-            <TextField select fullWidth size="small" sx={input}>
-              <MenuItem value="USA">USA</MenuItem>
-              <MenuItem value="Canada">Canada</MenuItem>
-              <MenuItem value="UK">UK</MenuItem>
-            </TextField>
+            <Typography sx={label}>Owner Name*:</Typography>
+            <TextField 
+              fullWidth 
+              size="small" 
+              placeholder="Owner Name"
+              name="owner"
+              value={form.owner}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={loading}
+            />
           </Box>
 
-          {/* City */}
+          {/* Email */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>City*</Typography>
-            <TextField fullWidth size="small" placeholder="City" sx={input} />
-          </Box>
-
-          {/* Landmark */}
-          <Box sx={fieldBox}>
-            <Typography sx={label}>Landmark*</Typography>
-            <TextField fullWidth size="small" placeholder="Landmark" sx={input} />
+            <Typography sx={label}>Business Email*:</Typography>
+            <TextField 
+              fullWidth 
+              size="small" 
+              type="email"
+              placeholder="business@example.com"
+              name="email"
+              value={form.email}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={loading}
+            />
           </Box>
         </Grid>
 
         {/* RIGHT COLUMN */}
         <Grid item xs={12} md={6}>
-          {/* Currency */}
-          <Box sx={fieldBox}>
-            <Typography sx={label}>Currency*</Typography>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              name="currency"
-              onChange={handle}
-              sx={input}
-            >
-              <MenuItem value="USD">USD</MenuItem>
-              <MenuItem value="EUR">EUR</MenuItem>
-              <MenuItem value="GBP">GBP</MenuItem>
-            </TextField>
-          </Box>
-
           {/* Website */}
           <Box sx={fieldBox}>
             <Typography sx={label}>Website:</Typography>
             <TextField
               fullWidth
               size="small"
-              placeholder="Website"
+              placeholder="https://example.com"
               name="website"
+              value={form.website}
               onChange={handle}
               sx={input}
+              disabled={loading}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -187,222 +283,70 @@ export default function AddBusiness() {
             />
           </Box>
 
-          {/* Alternate contact number */}
+          {/* Address */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>Alternate contact number:</Typography>
+            <Typography sx={label}>Business Address*:</Typography>
             <TextField
               fullWidth
               size="small"
-              placeholder="Alternate number"
+              placeholder="123 Main St, City, State, Country"
+              name="address"
+              value={form.address}
+              onChange={handle}
               sx={input}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <PhoneAndroidIcon sx={{ fontSize: 17, color: "#6B7280" }} />
-                  </InputAdornment>
-                ),
-              }}
+              required
+              disabled={loading}
+              multiline
+              rows={3}
             />
           </Box>
 
-          {/* State */}
+          {/* Package Selection */}
           <Box sx={fieldBox}>
-            <Typography sx={label}>State*</Typography>
-            <TextField fullWidth size="small" placeholder="State" sx={input} />
-          </Box>
-
-          {/* Zip Code */}
-          <Box sx={fieldBox}>
-            <Typography sx={label}>Zip Code*</Typography>
+            <Typography sx={label}>Subscription Package*:</Typography>
             <TextField
+              select
               fullWidth
               size="small"
-              placeholder="Zip / Postal Code"
+              name="subscription_package_id"
+              value={form.subscription_package_id}
+              onChange={handle}
               sx={input}
-            />
-          </Box>
-
-          {/* Time zone */}
-          <Box sx={fieldBox}>
-            <Typography sx={label}>Time zone*</Typography>
-            <TextField select fullWidth size="small" sx={input}>
-              <MenuItem value="Asia/Kolkata">Asia/Kolkata</MenuItem>
-              <MenuItem value="UTC">UTC</MenuItem>
-              <MenuItem value="EST">EST</MenuItem>
+              required
+              disabled={loading}
+            >
+              <MenuItem value="">Select Package</MenuItem>
+              {packages.map((pkg) => (
+                <MenuItem key={pkg.id} value={pkg.id}>
+                  {pkg.name} - ${pkg.price}/{pkg.duration_type}
+                </MenuItem>
+              ))}
             </TextField>
           </Box>
         </Grid>
       </Grid>
 
-      {/* OWNER INFORMATION SECTION */}
-<Typography sx={sectionTitle}>Owner information</Typography>
-
-<Grid container spacing={3}>
-
-  {/* Prefix */}
-  <Grid item xs={12} sm={4}>
-    <Typography sx={label}>Prefix:</Typography>
-    <TextField
-      select
-      fullWidth
-      size="small"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    >
-      <MenuItem value="Mr">Mr</MenuItem>
-      <MenuItem value="Mrs">Mrs</MenuItem>
-      <MenuItem value="Miss">Miss</MenuItem>
-    </TextField>
-  </Grid>
-
-  {/* First Name */}
-  <Grid item xs={12} sm={4}>
-    <Typography sx={label}>First Name*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      placeholder="First Name"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-
-  {/* Last Name */}
-  <Grid item xs={12} sm={4}>
-    <Typography sx={label}>Last Name*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      placeholder="Last Name"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-
-  {/* Username */}
-  <Grid item xs={12} sm={6}>
-    <Typography sx={label}>Username*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      placeholder="Username"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-
-  {/* Email */}
-  <Grid item xs={12} sm={6}>
-    <Typography sx={label}>Email*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      type="email"
-      placeholder="Email"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-
-  {/* Password */}
-  <Grid item xs={12} sm={6}>
-    <Typography sx={label}>Password*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      type="password"
-      placeholder="Password"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-
-  {/* Confirm Password */}
-  <Grid item xs={12} sm={6}>
-    <Typography sx={label}>Confirm Password*:</Typography>
-    <TextField
-      fullWidth
-      size="small"
-      type="password"
-      placeholder="Confirm Password"
-      sx={input}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Grid>
-</Grid>
-
-      {/* PACKAGES SECTION */}
-      <Grid container columnSpacing={6} sx={{ mt: "28px" }}>
-        <Grid item xs={12} md={4}>
-          <Typography sx={label}>Packages:</Typography>
-          <TextField select fullWidth size="small" sx={input}>
-            <MenuItem value="Starter">Starter</MenuItem>
-            <MenuItem value="Regular">Regular</MenuItem>
-            <MenuItem value="Unlimited">Unlimited</MenuItem>
-          </TextField>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Typography sx={label}>Paid Via:</Typography>
-          <TextField select fullWidth size="small" sx={input}>
-            <MenuItem value="Card">Card</MenuItem>
-            <MenuItem value="Cash">Cash</MenuItem>
-            <MenuItem value="Bank">Bank</MenuItem>
-          </TextField>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Typography sx={label}>Payment Transaction ID:</Typography>
-          <TextField fullWidth size="small" sx={input} />
-        </Grid>
-      </Grid>
-
       {/* SUBMIT BUTTON */}
-      <Box sx={{ textAlign: "center", mt: "40px" }}>
+      <Box sx={{ textAlign: "center", mt: "40px", display: "flex", justifyContent: "center", gap: 2 }}>
         <Button
+          variant="outlined"
+          disabled={loading}
+          onClick={() => navigate("/all-business")}
+          sx={{
+            textTransform: "none",
+            px: "38px",
+            height: "40px",
+            borderRadius: "6px",
+            fontWeight: 600,
+            fontSize: "15px",
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
           variant="contained"
+          disabled={loading}
           sx={{
             background: "#2ECC71",
             textTransform: "none",
@@ -413,9 +357,10 @@ export default function AddBusiness() {
             fontSize: "15px",
           }}
         >
-          Submit
+          {loading ? <CircularProgress size={24} color="inherit" /> : "Submit"}
         </Button>
       </Box>
+      </form>
     </Box>
   );
 }
