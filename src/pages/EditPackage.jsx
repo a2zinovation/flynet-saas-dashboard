@@ -13,7 +13,10 @@ import {
   InputAdornment,
   Checkbox,
   FormControlLabel,
-  Divider,
+  Radio,
+  RadioGroup,
+  FormControl,
+  Select,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import packageService from "../services/packageService";
@@ -27,15 +30,17 @@ export default function EditPackage() {
     name: "",
     description: "",
     price: "",
-    duration_type: "month",
-    max_cameras: 10,
-    max_locations: 5,
-    max_users: 10,
+    is_free: false,
+    price_interval: "monthly",
+    interval: "",
+    trial_days: "",
+    max_cameras: "",
+    max_locations: "",
+    max_users: "",
     analytics_enabled: false,
     api_access_enabled: false,
     recording_enabled: true,
     motion_detection_enabled: true,
-    features: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,20 +57,26 @@ export default function EditPackage() {
     
     if (result.success) {
       const pkg = result.data;
+      const priceValue = parseFloat(pkg.price) || 0;
+      const isFree = priceValue === 0;
+      const priceInterval = pkg.duration_type === "year" ? "yearly" : "monthly";
+      
       setForm({
         id: pkg.id,
         name: pkg.name || "",
         description: pkg.description || "",
-        price: pkg.price || "",
-        duration_type: pkg.duration_type || "month",
-        max_cameras: pkg.max_cameras || 10,
-        max_locations: pkg.max_locations || 5,
-        max_users: pkg.max_users || 10,
+        price: priceValue,
+        is_free: isFree,
+        price_interval: priceInterval,
+        interval: pkg.interval || "",
+        trial_days: pkg.trial_days || "",
+        max_cameras: pkg.max_cameras || "",
+        max_locations: pkg.max_locations || "",
+        max_users: pkg.max_users || "",
         analytics_enabled: pkg.analytics_enabled === 1 || pkg.analytics_enabled === true,
         api_access_enabled: pkg.api_access_enabled === 1 || pkg.api_access_enabled === true,
         recording_enabled: pkg.recording_enabled === 1 || pkg.recording_enabled === true,
         motion_detection_enabled: pkg.motion_detection_enabled === 1 || pkg.motion_detection_enabled === true,
-        features: pkg.features?.map(f => f.id) || [],
       });
     } else {
       setError(result.message || "Failed to load package");
@@ -83,6 +94,11 @@ export default function EditPackage() {
     setForm({ ...form, [name]: checked });
   };
 
+  const handleFreePackage = (e) => {
+    const isFree = e.target.value === "free";
+    setForm({ ...form, is_free: isFree, price: isFree ? "0" : form.price });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -95,15 +111,16 @@ export default function EditPackage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price) || 0,
-      duration_type: form.duration_type,
-      max_cameras: parseInt(form.max_cameras) || 10,
-      max_locations: parseInt(form.max_locations) || 5,
-      max_users: parseInt(form.max_users) || 10,
+      duration_type: form.price_interval === "monthly" ? "month" : "year",
+      interval: parseInt(form.interval) || 1,
+      trial_days: parseInt(form.trial_days) || 0,
+      max_cameras: parseInt(form.max_cameras) || 0,
+      max_locations: parseInt(form.max_locations) || 0,
+      max_users: parseInt(form.max_users) || 0,
       analytics_enabled: form.analytics_enabled ? 1 : 0,
       api_access_enabled: form.api_access_enabled ? 1 : 0,
       recording_enabled: form.recording_enabled ? 1 : 0,
       motion_detection_enabled: form.motion_detection_enabled ? 1 : 0,
-      features: form.features,
     };
 
     const result = await packageService.update(packageData);
@@ -164,9 +181,9 @@ export default function EditPackage() {
         <form onSubmit={handleSubmit}>
           <Grid container spacing={3}>
             {/* LEFT COLUMN */}
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={6} sx={{ flexGrow: 1 }}>
               <Typography fontWeight={600} sx={{ mb: 1 }}>
-                Package Name*:
+                Name:
               </Typography>
               <TextField 
                 fullWidth 
@@ -174,13 +191,75 @@ export default function EditPackage() {
                 name="name"
                 value={form.name}
                 onChange={handle}
-                placeholder="e.g., Premium Package"
+                placeholder="Enter package name"
                 required
                 disabled={saving}
               />
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
-                Package Description*:
+                Number of Locations:
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                name="max_locations"
+                type="number"
+                value={form.max_locations}
+                onChange={handle}
+                placeholder="0 = infinite"
+                disabled={saving}
+                inputProps={{ min: 0 }}
+              />
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Number of Cameras:
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                name="max_cameras"
+                type="number"
+                value={form.max_cameras}
+                onChange={handle}
+                placeholder="0 = infinite"
+                disabled={saving}
+                inputProps={{ min: 0 }}
+              />
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Price Interval:
+              </Typography>
+              <FormControl fullWidth size="small" disabled={saving}>
+                <Select
+                  name="price_interval"
+                  value={form.price_interval}
+                  onChange={handle}
+                >
+                  <MenuItem value="monthly">Monthly</MenuItem>
+                  <MenuItem value="yearly">Yearly</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Trial Days:
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                name="trial_days"
+                type="number"
+                value={form.trial_days}
+                onChange={handle}
+                placeholder="0"
+                disabled={saving}
+                inputProps={{ min: 0 }}
+              />
+            </Grid>
+
+            {/* RIGHT COLUMN */}
+            <Grid item xs={12} md={6} sx={{ flexGrow: 1 }}>
+              <Typography fontWeight={600} sx={{ mb: 1 }}>
+                Package Description:
               </Typography>
               <TextField 
                 fullWidth 
@@ -188,15 +267,42 @@ export default function EditPackage() {
                 name="description"
                 value={form.description}
                 onChange={handle}
-                placeholder="Brief description of package"
-                required
+                placeholder="Brief description"
                 disabled={saving}
-                multiline
-                rows={3}
               />
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
-                Price*:
+                Number of active users:
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                name="max_users"
+                type="number"
+                value={form.max_users}
+                onChange={handle}
+                placeholder="0 = infinite"
+                disabled={saving}
+                inputProps={{ min: 0 }}
+              />
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Interval:
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                name="interval"
+                type="number"
+                value={form.interval}
+                onChange={handle}
+                placeholder="1"
+                disabled={saving}
+                inputProps={{ min: 1 }}
+              />
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Price:
               </Typography>
               <TextField
                 fullWidth
@@ -206,160 +312,92 @@ export default function EditPackage() {
                 value={form.price}
                 onChange={handle}
                 placeholder="0"
-                required
-                disabled={saving}
+                disabled={saving || form.is_free}
                 InputProps={{
                   startAdornment: (
-                    <InputAdornment position="start">USD $</InputAdornment>
+                    <InputAdornment position="start">
+                      <Typography sx={{ fontWeight: 600 }}>USD $</Typography>
+                    </InputAdornment>
                   ),
                 }}
+                inputProps={{ min: 0, step: "0.01" }}
               />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                Enter 0 for free package
-              </Typography>
-            </Grid>
 
-            {/* RIGHT COLUMN */}
-            <Grid item xs={12} md={6}>
-              <Typography fontWeight={600} sx={{ mb: 1 }}>
-                Duration Type*:
-              </Typography>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="duration_type"
-                value={form.duration_type}
-                onChange={handle}
-                required
-                disabled={saving}
+              {/* Free package toggle */}
+              <RadioGroup 
+                value={form.is_free ? "free" : "paid"} 
+                onChange={handleFreePackage}
+                sx={{ mt: 1 }}
               >
-                <MenuItem value="day">Daily</MenuItem>
-                <MenuItem value="week">Weekly</MenuItem>
-                <MenuItem value="month">Monthly</MenuItem>
-                <MenuItem value="year">Yearly</MenuItem>
-              </TextField>
-
-              {/* <Box sx={{ mt: 3, p: 2, bgcolor: "#F9FAFB", borderRadius: 1 }}>
-                <Typography variant="body2" color="text.secondary">
-                  <strong>Package ID:</strong> {form.id}
-                </Typography>
-              </Box> */}
+                <FormControlLabel
+                  value="free"
+                  control={<Radio disabled={saving} />}
+                  label="Free Package"
+                />
+              </RadioGroup>
             </Grid>
 
-            {/* PACKAGE LIMITS SECTION */}
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                Package Limits
-              </Typography>
-            </Grid>
-
-            {/* Limits - Left Column */}
-            <Grid item xs={12} md={6}>
-              <Typography fontWeight={600} sx={{ mb: 1 }}>
-                Max Cameras*:
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="max_cameras"
-                type="number"
-                value={form.max_cameras}
-                onChange={handle}
-                required
-                disabled={saving}
-                inputProps={{ min: 0 }}
-              />
-
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
-                Max Locations*:
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="max_locations"
-                type="number"
-                value={form.max_locations}
-                onChange={handle}
-                required
-                disabled={saving}
-                inputProps={{ min: 0 }}
-              />
-
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
-                Max Users*:
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                name="max_users"
-                type="number"
-                value={form.max_users}
-                onChange={handle}
-                required
-                disabled={saving}
-                inputProps={{ min: 0 }}
-              />
-            </Grid>
-
-            {/* Feature Toggles - Right Column */}
-            <Grid item xs={12} md={6}>
-              <Typography fontWeight={600} sx={{ mb: 2 }}>
+            {/* FEATURE TOGGLES - Full Width */}
+            {/* <Grid item xs={12}>
+              <Typography fontWeight={600} sx={{ mb: 2, mt: 2 }}>
                 Features:
               </Typography>
               
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.analytics_enabled}
-                    onChange={handleCheckbox}
-                    name="analytics_enabled"
-                    disabled={saving}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.analytics_enabled}
+                        onChange={handleCheckbox}
+                        name="analytics_enabled"
+                        disabled={saving}
+                      />
+                    }
+                    label="Analytics Enabled"
                   />
-                }
-                label="Analytics Enabled"
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.api_access_enabled}
-                    onChange={handleCheckbox}
-                    name="api_access_enabled"
-                    disabled={saving}
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.api_access_enabled}
+                        onChange={handleCheckbox}
+                        name="api_access_enabled"
+                        disabled={saving}
+                      />
+                    }
+                    label="API Access Enabled"
                   />
-                }
-                label="API Access Enabled"
-                sx={{ display: 'block' }}
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.recording_enabled}
-                    onChange={handleCheckbox}
-                    name="recording_enabled"
-                    disabled={saving}
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.recording_enabled}
+                        onChange={handleCheckbox}
+                        name="recording_enabled"
+                        disabled={saving}
+                      />
+                    }
+                    label="Recording Enabled"
                   />
-                }
-                label="Recording Enabled"
-                sx={{ display: 'block' }}
-              />
-
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={form.motion_detection_enabled}
-                    onChange={handleCheckbox}
-                    name="motion_detection_enabled"
-                    disabled={saving}
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={form.motion_detection_enabled}
+                        onChange={handleCheckbox}
+                        name="motion_detection_enabled"
+                        disabled={saving}
+                      />
+                    }
+                    label="Motion Detection"
                   />
-                }
-                label="Motion Detection Enabled"
-                sx={{ display: 'block' }}
-              />
-            </Grid>
+                </Grid>
+              </Grid>
+            </Grid> */}
           </Grid>
 
           {/* Save Button */}

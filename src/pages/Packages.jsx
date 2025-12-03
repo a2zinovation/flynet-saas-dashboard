@@ -144,7 +144,7 @@ export default function Packages() {
               key={pkg.id}
               id={pkg.id}
               title={pkg.name}
-              status={pkg.is_active ? "Active" : "Inactive"}
+              status={pkg.is_active == 1 ? "Active" : "Inactive"}
               features={{
                 max_cameras: pkg.max_cameras,
                 max_locations: pkg.max_locations,
@@ -156,7 +156,7 @@ export default function Packages() {
               }}
               priceText={`$ ${pkg.price} / ${pkg.duration_type}`}
               footer={pkg.description || "Package details"}
-              inactive={!pkg.is_active}
+              inactive={pkg.is_active == 0}
               onClick={() => openSubscriptions(pkg.id)}
               onEdit={handleEdit}
               onDelete={handleDeleteClick}

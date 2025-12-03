@@ -1,5 +1,5 @@
 // src/components/layout/Sidebar.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Drawer,
   Box,
@@ -11,6 +11,7 @@ import {
   Tooltip,
   Divider,
   useTheme,
+  Badge,
 } from "@mui/material";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -26,6 +27,8 @@ import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 
+import notificationService from "../../services/notificationService";
+
 export default function Sidebar({
   mobileOpen,
   handleDrawerToggle,
@@ -37,6 +40,23 @@ export default function Sidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    const result = await notificationService.getUnreadCount();
+    if (result.success) {
+      setUnreadCount(result.count);
+    }
+  };
 
   const MenuItems = [
   { label: "Dashboard", icon: <DashboardOutlinedIcon />, path: "/dashboard" },
@@ -144,6 +164,9 @@ export default function Sidebar({
         {MenuItems.map((item, i) => {
           const active = location.pathname === item.path;
 
+          // Show badge for notification center
+          const showBadge = item.path === "/notification-center" && unreadCount > 0;
+
           /* COLLAPSED MODE — Icons only */
           if (isCollapsed) {
             return (
@@ -169,7 +192,13 @@ export default function Sidebar({
                       "& svg": { fontSize: 20 },
                     }}
                   >
-                    {item.icon}
+                    {showBadge ? (
+                      <Badge badgeContent={unreadCount} color="error" max={99}>
+                        {item.icon}
+                      </Badge>
+                    ) : (
+                      item.icon
+                    )}
                   </ListItemIcon>
                 </ListItemButton>
               </Tooltip>
@@ -200,7 +229,13 @@ export default function Sidebar({
                   "& svg": { fontSize: 20 },
                 }}
               >
-                {item.icon}
+                {showBadge ? (
+                  <Badge badgeContent={unreadCount} color="error" max={99}>
+                    {item.icon}
+                  </Badge>
+                ) : (
+                  item.icon
+                )}
               </ListItemIcon>
 
               <ListItemText

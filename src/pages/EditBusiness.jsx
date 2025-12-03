@@ -5,6 +5,7 @@ import {
   Typography,
   Grid,
   TextField,
+  MenuItem,
   Button,
   InputAdornment,
   Alert,
@@ -16,6 +17,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import businessService from "../services/businessService";
 import packageService from "../services/packageService";
+import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 
 export default function EditBusiness() {
   const navigate = useNavigate();
@@ -23,14 +25,31 @@ export default function EditBusiness() {
   
   const [form, setForm] = useState({
     id: "",
+    // Business Details
     name: "",
-    domain: "",
-    owner: "",
-    email: "",
+    start_date: "",
     phone: "",
-    address: "",
+    alternate_phone: "",
+    country: "",
+    state: "",
+    city: "",
+    zip_code: "",
+    landmark: "",
+    timezone: "",
+    currency: "",
     website: "",
+    
+    // Owner Information
+    prefix: "",
+    first_name: "",
+    last_name: "",
+    username: "",
+    email: "",
+    
+    // Package Information
     subscription_package_id: "",
+    paid_via: "",
+    payment_transaction_id: "",
   });
   const [logo, setLogo] = useState(null);
   const [currentLogo, setCurrentLogo] = useState("");
@@ -60,14 +79,31 @@ export default function EditBusiness() {
       const business = result.data;
       setForm({
         id: business.id,
+        // Business Details
         name: business.name || "",
-        domain: business.domain || "",
-        owner: business.owner || "",
-        email: business.email || "",
+        start_date: business.start_date || "",
         phone: business.phone || "",
-        address: business.address || "",
+        alternate_phone: business.alternate_phone || "",
+        country: business.country || "",
+        state: business.state || "",
+        city: business.city || "",
+        zip_code: business.zip_code || "",
+        landmark: business.landmark || "",
+        timezone: business.timezone || "",
+        currency: business.currency || "",
         website: business.website || "",
+        
+        // Owner Information
+        prefix: business.prefix || "",
+        first_name: business.first_name || "",
+        last_name: business.last_name || "",
+        username: business.username || "",
+        email: business.email || "",
+        
+        // Package Information
         subscription_package_id: business.subscription_package_id || "",
+        paid_via: business.paid_via || "",
+        payment_transaction_id: business.payment_transaction_id || "",
       });
       setCurrentLogo(business.logo || "");
     } else {
@@ -93,15 +129,35 @@ export default function EditBusiness() {
 
     const formData = new FormData();
     formData.append("id", form.id);
-    formData.append("name", form.name);
-    formData.append("domain", form.domain || form.name.toLowerCase().replace(/\s+/g, "-"));
-    formData.append("owner", form.owner);
-    formData.append("email", form.email);
-    formData.append("phone", form.phone);
-    formData.append("address", form.address);
-    formData.append("website", form.website);
-    formData.append("subscription_package_id", form.subscription_package_id);
     
+    // Business Details
+    formData.append("name", form.name);
+    formData.append("domain", form.name.toLowerCase().replace(/\s+/g, "-"));
+    formData.append("start_date", form.start_date);
+    formData.append("phone", form.phone);
+    formData.append("alternate_phone", form.alternate_phone);
+    formData.append("country", form.country);
+    formData.append("state", form.state);
+    formData.append("city", form.city);
+    formData.append("zip_code", form.zip_code);
+    formData.append("landmark", form.landmark);
+    formData.append("timezone", form.timezone);
+    formData.append("currency", form.currency);
+    formData.append("website", form.website);
+    
+    // Owner Information
+    formData.append("prefix", form.prefix);
+    formData.append("first_name", form.first_name);
+    formData.append("last_name", form.last_name);
+    formData.append("username", form.username);
+    formData.append("email", form.email);
+    
+    // Package Information
+    formData.append("subscription_package_id", form.subscription_package_id);
+    formData.append("paid_via", form.paid_via);
+    formData.append("payment_transaction_id", form.payment_transaction_id);
+    
+    // Logo
     if (logo) {
       formData.append("logo", logo);
     }
@@ -177,18 +233,19 @@ export default function EditBusiness() {
               />
             </Box>
 
-            {/* Domain */}
+            {/* Start Date */}
             <Box sx={fieldBox}>
-              <Typography sx={label}>Domain:</Typography>
+              <Typography sx={label}>Start Date:</Typography>
               <TextField
                 fullWidth
+                type="date"
                 size="small"
-                name="domain"
-                value={form.domain}
-                placeholder="business-domain"
+                name="start_date"
+                value={form.start_date}
                 onChange={handle}
                 sx={input}
                 disabled={saving}
+                InputLabelProps={{ shrink: true }}
               />
             </Box>
 
@@ -275,15 +332,41 @@ export default function EditBusiness() {
               />
             </Box>
 
-            {/* Owner */}
+            {/* Country */}
             <Box sx={fieldBox}>
-              <Typography sx={label}>Owner Name*:</Typography>
+              <Typography sx={label}>Country*</Typography>
+              <TextField 
+                select 
+                fullWidth 
+                size="small" 
+                name="country"
+                value={form.country}
+                onChange={handle}
+                sx={input}
+                required
+                disabled={saving}
+              >
+                <MenuItem value="">Select Country</MenuItem>
+                <MenuItem value="USA">USA</MenuItem>
+                <MenuItem value="Canada">Canada</MenuItem>
+                <MenuItem value="UK">UK</MenuItem>
+                <MenuItem value="Australia">Australia</MenuItem>
+                <MenuItem value="Germany">Germany</MenuItem>
+                <MenuItem value="France">France</MenuItem>
+                <MenuItem value="India">India</MenuItem>
+                <MenuItem value="Pakistan">Pakistan</MenuItem>
+              </TextField>
+            </Box>
+
+            {/* City */}
+            <Box sx={fieldBox}>
+              <Typography sx={label}>City*</Typography>
               <TextField 
                 fullWidth 
                 size="small" 
-                placeholder="Owner Name"
-                name="owner"
-                value={form.owner}
+                placeholder="City" 
+                name="city"
+                value={form.city}
                 onChange={handle}
                 sx={input}
                 required
@@ -291,16 +374,15 @@ export default function EditBusiness() {
               />
             </Box>
 
-            {/* Email */}
+            {/* Landmark */}
             <Box sx={fieldBox}>
-              <Typography sx={label}>Business Email*:</Typography>
+              <Typography sx={label}>Landmark*</Typography>
               <TextField 
                 fullWidth 
                 size="small" 
-                type="email"
-                placeholder="business@example.com"
-                name="email"
-                value={form.email}
+                placeholder="Landmark" 
+                name="landmark"
+                value={form.landmark}
                 onChange={handle}
                 sx={input}
                 required
@@ -311,6 +393,31 @@ export default function EditBusiness() {
 
           {/* RIGHT COLUMN */}
           <Grid item xs={12} md={6}>
+            {/* Currency */}
+            <Box sx={fieldBox}>
+              <Typography sx={label}>Currency*</Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                name="currency"
+                value={form.currency}
+                onChange={handle}
+                sx={input}
+                required
+                disabled={saving}
+              >
+                <MenuItem value="">Select Currency</MenuItem>
+                <MenuItem value="USD">USD</MenuItem>
+                <MenuItem value="EUR">EUR</MenuItem>
+                <MenuItem value="GBP">GBP</MenuItem>
+                <MenuItem value="CAD">CAD</MenuItem>
+                <MenuItem value="AUD">AUD</MenuItem>
+                <MenuItem value="INR">INR</MenuItem>
+                <MenuItem value="PKR">PKR</MenuItem>
+              </TextField>
+            </Box>
+
             {/* Website */}
             <Box sx={fieldBox}>
               <Typography sx={label}>Website:</Typography>
@@ -333,47 +440,272 @@ export default function EditBusiness() {
               />
             </Box>
 
-            {/* Address */}
+            {/* Alternate contact number */}
             <Box sx={fieldBox}>
-              <Typography sx={label}>Business Address*:</Typography>
+              <Typography sx={label}>Alternate contact number:</Typography>
               <TextField
                 fullWidth
                 size="small"
-                placeholder="123 Main St, City, State, Country"
-                name="address"
-                value={form.address}
+                placeholder="Alternate number"
+                name="alternate_phone"
+                value={form.alternate_phone}
                 onChange={handle}
                 sx={input}
-                required
                 disabled={saving}
-                multiline
-                rows={3}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <PhoneAndroidIcon sx={{ fontSize: 17, color: "#6B7280" }} />
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Box>
 
-            {/* Package Selection */}
+            {/* State */}
             <Box sx={fieldBox}>
-              <Typography sx={label}>Subscription Package*:</Typography>
-              <TextField
-                select
-                fullWidth
-                size="small"
-                name="subscription_package_id"
-                value={form.subscription_package_id}
+              <Typography sx={label}>State*</Typography>
+              <TextField 
+                fullWidth 
+                size="small" 
+                placeholder="State" 
+                name="state"
+                value={form.state}
                 onChange={handle}
                 sx={input}
                 required
                 disabled={saving}
-                SelectProps={{ native: true }}
+              />
+            </Box>
+
+            {/* Zip Code */}
+            <Box sx={fieldBox}>
+              <Typography sx={label}>Zip Code*</Typography>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Zip / Postal Code"
+                name="zip_code"
+                value={form.zip_code}
+                onChange={handle}
+                sx={input}
+                required
+                disabled={saving}
+              />
+            </Box>
+
+            {/* Time zone */}
+            <Box sx={fieldBox}>
+              <Typography sx={label}>Time zone*</Typography>
+              <TextField 
+                select 
+                fullWidth 
+                size="small" 
+                name="timezone"
+                value={form.timezone}
+                onChange={handle}
+                sx={input}
+                required
+                disabled={saving}
               >
-                <option value="">Select Package</option>
-                {packages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>
-                    {pkg.name} - ${pkg.price}/{pkg.duration_type}
-                  </option>
-                ))}
+                <MenuItem value="">Select Timezone</MenuItem>
+                <MenuItem value="Asia/Karachi">Asia/Karachi (PKT)</MenuItem>
+                <MenuItem value="Asia/Kolkata">Asia/Kolkata (IST)</MenuItem>
+                <MenuItem value="America/New_York">America/New_York (EST)</MenuItem>
+                <MenuItem value="America/Los_Angeles">America/Los_Angeles (PST)</MenuItem>
+                <MenuItem value="Europe/London">Europe/London (GMT)</MenuItem>
+                <MenuItem value="UTC">UTC</MenuItem>
               </TextField>
             </Box>
+          </Grid>
+        </Grid>
+
+        {/* OWNER INFORMATION SECTION */}
+        <Typography sx={sectionTitle}>Owner information</Typography>
+
+        <Grid container spacing={3}>
+          {/* Prefix */}
+          <Grid item xs={12} sm={4}>
+            <Typography sx={label}>Prefix:</Typography>
+            <TextField
+              select
+              fullWidth
+              size="small"
+              name="prefix"
+              value={form.prefix}
+              onChange={handle}
+              sx={input}
+              disabled={saving}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            >
+              <MenuItem value="">Select</MenuItem>
+              <MenuItem value="Mr">Mr</MenuItem>
+              <MenuItem value="Mrs">Mrs</MenuItem>
+              <MenuItem value="Miss">Miss</MenuItem>
+              <MenuItem value="Dr">Dr</MenuItem>
+            </TextField>
+          </Grid>
+
+          {/* First Name */}
+          <Grid item xs={12} sm={4}>
+            <Typography sx={label}>First Name*:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="First Name"
+              name="first_name"
+              value={form.first_name}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={saving}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* Last Name */}
+          <Grid item xs={12} sm={4}>
+            <Typography sx={label}>Last Name*:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Last Name"
+              name="last_name"
+              value={form.last_name}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={saving}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* Username */}
+          <Grid item xs={12} sm={6}>
+            <Typography sx={label}>Username*:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Username"
+              name="username"
+              value={form.username}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={saving}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* Email */}
+          <Grid item xs={12} sm={6}>
+            <Typography sx={label}>Email*:</Typography>
+            <TextField
+              fullWidth
+              size="small"
+              type="email"
+              placeholder="owner@example.com"
+              name="email"
+              value={form.email}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={saving}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AlternateEmailIcon sx={{ fontSize: 16, color: "#6B7280" }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+        </Grid>
+
+        {/* PACKAGES SECTION */}
+        <Typography sx={sectionTitle}>Package & Payment Information</Typography>
+        
+        <Grid container columnSpacing={6}>
+          <Grid item xs={12} md={4}>
+            <Typography sx={label}>Packages*:</Typography>
+            <TextField 
+              select 
+              fullWidth 
+              size="small" 
+              name="subscription_package_id"
+              value={form.subscription_package_id}
+              onChange={handle}
+              sx={input}
+              required
+              disabled={saving}
+              SelectProps={{ native: true }}
+            >
+              <option value="">Select Package</option>
+              {packages.map((pkg) => (
+                <option key={pkg.id} value={pkg.id}>
+                  {pkg.name} - ${pkg.price}/{pkg.duration_type}
+                </option>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Typography sx={label}>Paid Via:</Typography>
+            <TextField 
+              select 
+              fullWidth 
+              size="small" 
+              name="paid_via"
+              value={form.paid_via}
+              onChange={handle}
+              sx={input}
+              disabled={saving}
+            >
+              <MenuItem value="">Select Payment Method</MenuItem>
+              <MenuItem value="Card">Card</MenuItem>
+              <MenuItem value="Cash">Cash</MenuItem>
+              <MenuItem value="Bank">Bank Transfer</MenuItem>
+              <MenuItem value="PayPal">PayPal</MenuItem>
+              <MenuItem value="Stripe">Stripe</MenuItem>
+            </TextField>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Typography sx={label}>Payment Transaction ID:</Typography>
+            <TextField 
+              fullWidth 
+              size="small" 
+              placeholder="Transaction ID"
+              name="payment_transaction_id"
+              value={form.payment_transaction_id}
+              onChange={handle}
+              sx={input}
+              disabled={saving}
+            />
           </Grid>
         </Grid>
 

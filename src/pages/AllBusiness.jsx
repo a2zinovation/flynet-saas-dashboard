@@ -275,8 +275,8 @@ export default function AllBusiness() {
                     <TableCell>{row.phone || "—"}</TableCell>
                     <TableCell>
                       <Chip 
-                        label={row.is_active ? "Active" : "Inactive"} 
-                        color={statusColor(row.is_active ? "Active" : "Inactive")} 
+                        label={row.is_active == 1 ? "Active" : "Inactive"} 
+                        color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
                         size="small" 
                       />
                     </TableCell>
@@ -310,7 +310,7 @@ export default function AllBusiness() {
                             sx={{ textTransform: "none" }}
                             onClick={() => handleToggleStatus(row.id)}
                           >
-                            {row.is_active ? 'Deactivate' : 'Activate'}
+                            {row.is_active == 1 ? 'Deactivate' : 'Activate'}
                           </Button>
                           <Button 
                             size="small" 

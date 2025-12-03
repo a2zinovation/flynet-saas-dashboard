@@ -1,5 +1,5 @@
 // src/components/layout/Header.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -24,6 +24,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
+import notificationService from "../../services/notificationService";
 
 const Header = ({ drawerWidth }) => {
   const { user, logout } = useAuth();
@@ -38,8 +39,25 @@ const Header = ({ drawerWidth }) => {
 
   const [language, setLanguage] = useState("en-US");
   const [profileAnchor, setProfileAnchor] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const isMenuOpen = Boolean(profileAnchor);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    const result = await notificationService.getUnreadCount();
+    if (result.success) {
+      setUnreadCount(result.count);
+    }
+  };
 
   const handleProfileMenuOpen = (e) => setProfileAnchor(e.currentTarget);
   const handleProfileMenuClose = () => setProfileAnchor(null);
@@ -162,7 +180,7 @@ const Header = ({ drawerWidth }) => {
 
             {/* Notifications */}
             <IconButton onClick={() => navigate("/notification-center")}>
-              <Badge badgeContent={3} color="error">
+              <Badge badgeContent={unreadCount} color="error" max={99}>
                 <NotificationsIcon />
               </Badge>
             </IconButton>

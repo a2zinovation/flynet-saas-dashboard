@@ -1,13 +1,84 @@
 import apiClient from '../config/api';
 
+/**
+ * Helper function to extract error messages from validation errors
+ * @param {Object|String} error - Error object or string
+ * @returns {String} - Formatted error message
+ */
+const extractErrorMessage = (error) => {
+  // If error is a string, return it directly
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  // If error.Message is an object (validation errors)
+  if (error.Message && typeof error.Message === 'object') {
+    const validationErrors = Object.values(error.Message)
+      .flat()
+      .join(', ');
+    return validationErrors || 'Validation failed';
+  }
+
+  // If error.Message is a string
+  if (error.Message) {
+    return error.Message;
+  }
+
+  // If error.message exists (standard JS error)
+  if (error.message) {
+    return error.message;
+  }
+
+  // Default fallback
+  return 'An unexpected error occurred';
+};
+
+/**
+ * Helper function to check if response indicates success
+ * @param {Object} response - API response
+ * @returns {Boolean} - True if successful
+ */
+const isSuccessResponse = (response) => {
+  // Check Success field explicitly
+  if (response.hasOwnProperty('Success')) {
+    return response.Success === true;
+  }
+
+  // Check Status field for success codes (200-299)
+  if (response.hasOwnProperty('Status')) {
+    return response.Status >= 200 && response.Status < 300;
+  }
+
+  // Fallback: assume success if no error indicators
+  return true;
+};
+
 const businessService = {
   // Get all businesses
   getAll: async () => {
     try {
       const response = await apiClient.get('/business');
-      return { success: true, data: response.Data || [] };
+      
+      // Check if response indicates success
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data || [],
+        message: response.Message || 'Businesses loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message, data: [] };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
     }
   },
 
@@ -15,9 +86,26 @@ const businessService = {
   getById: async (id) => {
     try {
       const response = await apiClient.get(`/business-by-id/${id}`);
-      return { success: true, data: response.Data };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Business loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
     }
   },
 
@@ -27,9 +115,29 @@ const businessService = {
       const response = await apiClient.post('/business-save', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return { success: true, data: response.Data, message: response.Message };
+
+      // Check Success field and Status code
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Business created successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -39,9 +147,29 @@ const businessService = {
       const response = await apiClient.post('/business-update', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return { success: true, data: response.Data, message: response.Message };
+
+      // Check Success field and Status code
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Business updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -49,9 +177,23 @@ const businessService = {
   toggleStatus: async (id) => {
     try {
       const response = await apiClient.post('/business-status', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Business status updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 
@@ -59,9 +201,23 @@ const businessService = {
   delete: async (id) => {
     try {
       const response = await apiClient.post('/business-delete', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Business deleted successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 };

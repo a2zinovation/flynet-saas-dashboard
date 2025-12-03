@@ -1,13 +1,83 @@
 import apiClient from '../config/api';
 
+/**
+ * Helper function to extract error messages from validation errors
+ * @param {Object|String} error - Error object or string
+ * @returns {String} - Formatted error message
+ */
+const extractErrorMessage = (error) => {
+  // If error is a string, return it directly
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  // If error.Message is an object (validation errors)
+  if (error.Message && typeof error.Message === 'object') {
+    const validationErrors = Object.values(error.Message)
+      .flat()
+      .join(', ');
+    return validationErrors || 'Validation failed';
+  }
+
+  // If error.Message is a string
+  if (error.Message) {
+    return error.Message;
+  }
+
+  // If error.message exists (standard JS error)
+  if (error.message) {
+    return error.message;
+  }
+
+  // Default fallback
+  return 'An unexpected error occurred';
+};
+
+/**
+ * Helper function to check if response indicates success
+ * @param {Object} response - API response
+ * @returns {Boolean} - True if successful
+ */
+const isSuccessResponse = (response) => {
+  // Check Success field explicitly
+  if (response.hasOwnProperty('Success')) {
+    return response.Success === true;
+  }
+
+  // Check Status field for success codes (200-299)
+  if (response.hasOwnProperty('Status')) {
+    return response.Status >= 200 && response.Status < 300;
+  }
+
+  // Fallback: assume success if no error indicators
+  return true;
+};
+
 const packageService = {
   // Get all packages
   getAll: async () => {
     try {
       const response = await apiClient.get('/subscription-package');
-      return { success: true, data: response.Data || [] };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data || [],
+        message: response.Message || 'Packages loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message, data: [] };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
     }
   },
 
@@ -15,9 +85,26 @@ const packageService = {
   getById: async (id) => {
     try {
       const response = await apiClient.get(`/subscription-package-by-id/${id}`);
-      return { success: true, data: response.Data };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Package loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
     }
   },
 
@@ -25,9 +112,28 @@ const packageService = {
   create: async (packageData) => {
     try {
       const response = await apiClient.post('/subscription-package-save', packageData);
-      return { success: true, data: response.Data, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Package created successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -35,9 +141,28 @@ const packageService = {
   update: async (packageData) => {
     try {
       const response = await apiClient.post('/subscription-package-update', packageData);
-      return { success: true, data: response.Data, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Package updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -45,9 +170,23 @@ const packageService = {
   toggleStatus: async (id) => {
     try {
       const response = await apiClient.post('/subscription-package-status', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Package status updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 
@@ -55,9 +194,23 @@ const packageService = {
   delete: async (id) => {
     try {
       const response = await apiClient.post('/subscription-package-delete', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Package deleted successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 
@@ -65,9 +218,26 @@ const packageService = {
   getAllFeatures: async () => {
     try {
       const response = await apiClient.get('/subscription-package-feature');
-      return { success: true, data: response.Data || [] };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data || [],
+        message: response.Message || 'Features loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message, data: [] };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
     }
   },
 
@@ -75,9 +245,26 @@ const packageService = {
   getFeatureById: async (id) => {
     try {
       const response = await apiClient.get(`/subscription-package-feature-by-id/${id}`);
-      return { success: true, data: response.Data };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Feature loaded successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
     }
   },
 
@@ -85,9 +272,28 @@ const packageService = {
   createFeature: async (featureData) => {
     try {
       const response = await apiClient.post('/subscription-package-feature-save', featureData);
-      return { success: true, data: response.Data, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Feature created successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -95,9 +301,28 @@ const packageService = {
   updateFeature: async (featureData) => {
     try {
       const response = await apiClient.post('/subscription-package-feature-update', featureData);
-      return { success: true, data: response.Data, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: typeof response.Message === 'object' ? response.Message : null
+        };
+      }
+
+      return {
+        success: true,
+        data: response.Data,
+        message: response.Message || 'Feature updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+      };
     }
   },
 
@@ -105,9 +330,23 @@ const packageService = {
   toggleFeatureStatus: async (id) => {
     try {
       const response = await apiClient.post('/subscription-package-feature-status', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Feature status updated successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 
@@ -115,9 +354,23 @@ const packageService = {
   deleteFeature: async (id) => {
     try {
       const response = await apiClient.post('/subscription-package-feature-delete', { id });
-      return { success: true, message: response.Message };
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: response.Message || 'Feature deleted successfully'
+      };
     } catch (error) {
-      return { success: false, message: error.Message };
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
     }
   },
 };
