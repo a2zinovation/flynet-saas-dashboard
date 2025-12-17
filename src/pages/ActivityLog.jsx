@@ -561,8 +561,8 @@ export default function Reports() {
         ) : (
           <>
             {/* TABLE */}
-            <Box sx={{ overflowX: 'auto' }}>
-              <Table size="small">
+            <Box sx={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+              <Table size="small" sx={{ minWidth: 900 }}>
                 <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
                   <TableRow>
                     <TableCell sx={{ minWidth: 180, fontWeight: 600 }}>Date & Time</TableCell>

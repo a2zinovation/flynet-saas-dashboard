@@ -242,10 +242,10 @@ export default function NotificationCenter() {
       {/* ---------------------------------------------- */}
       {/* PAGE TITLE + ACTIONS */}
       {/* ---------------------------------------------- */}
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} spacing={{ xs: 2, sm: 0 }} sx={{ mb: 3 }}>
         <Box>
           <Stack direction="row" alignItems="center" spacing={2}>
-            <Typography variant="h5" fontWeight="700">
+            <Typography variant="h5" fontWeight="700" sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}>
               Notification Center
             </Typography>
             {unreadCount > 0 && (
@@ -259,7 +259,7 @@ export default function NotificationCenter() {
           </Typography>
         </Box>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
           {selected.length > 0 && (
             <>
               <Button
@@ -269,9 +269,9 @@ export default function NotificationCenter() {
                 size="small"
                 onClick={handleMarkAsRead}
                 disabled={loading}
-                sx={{ textTransform: "none", borderRadius: 2 }}
+                sx={{ textTransform: "none", borderRadius: 2, minWidth: { xs: "auto", sm: "140px" } }}
               >
-                Mark as Read
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Mark as </Box>Read
               </Button>
 
               <Button

@@ -217,7 +217,7 @@ export default function Dashboard() {
           mb: 3,
         }}
       >
-        <Typography variant="h5" fontWeight="700">
+        <Typography variant="h5" fontWeight="700" sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}>
           Welcome Super
         </Typography>
       </Box>
@@ -257,8 +257,8 @@ export default function Dashboard() {
         sx={{
           borderRadius: 2,
           border: "1px solid rgba(14,30,37,0.06)",
-          p: 2,
-          minHeight: 420,
+          p: { xs: 1.5, sm: 2 },
+          minHeight: { xs: 300, sm: 420 },
           backgroundColor: "rgba(255,255,255,0.98)",
           overflow: "hidden",
         }}

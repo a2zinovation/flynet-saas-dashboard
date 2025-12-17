@@ -214,9 +214,9 @@ export default function Profile() {
   };
 
   return (
-    <Box>
+    <Box sx={{ px: { xs: 0, sm: 0 } }}>
       {/* PAGE TITLE */}
-      <Typography variant="h5" fontWeight={700} sx={{ mb: 3 }}>
+      <Typography variant="h5" fontWeight={700} sx={{ mb: 3, fontSize: { xs: "1.5rem", sm: "2rem" } }}>
         My Profile
       </Typography>
 
@@ -236,7 +236,7 @@ export default function Profile() {
       {/* CHANGE PASSWORD */}
       <Paper
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           borderRadius: 2,
           border: "1px solid #E5E7EB",
           mb: 3,

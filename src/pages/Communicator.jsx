@@ -195,7 +195,7 @@ export default function Communicator() {
   return (
     <Box>
       {/* ---- PAGE HEADER ---- */}
-      <Typography variant="h5" fontWeight="700" sx={{ mb: 0.5 }}>
+      <Typography variant="h5" fontWeight="700" sx={{ mb: 0.5, fontSize: { xs: "1.5rem", sm: "2rem" } }}>
         Communicator
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -221,7 +221,7 @@ export default function Communicator() {
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           border: "1px solid #E0E0E0",
           borderRadius: 2,
           mb: 4,

@@ -116,7 +116,7 @@ export default function AddPackage() {
     <Box>
       {/* Title */}
       <Box sx={{ mb: 3, flexGrow: 1 }}>
-        <Typography variant="h5" fontWeight={700}>
+        <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}>
           Packages
         </Typography>
         <Typography variant="body2" color="text.secondary">
@@ -140,7 +140,7 @@ export default function AddPackage() {
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 2, sm: 3 },
           borderRadius: 2,
           border: "1px solid #E8EDF2",
         }}

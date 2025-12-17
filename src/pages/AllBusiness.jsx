@@ -414,74 +414,80 @@ export default function AllBusiness() {
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ p: 2, borderRadius: 2, border: "1px solid #E8EDF2" }}>
+      <Paper elevation={0} sx={{ p: { xs: 1, sm: 2 }, borderRadius: 2, border: "1px solid #E8EDF2" }}>
         {/* Toolbar row (entries, export buttons, search) */}
-        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems="center" spacing={2} sx={{ mb: 2 }}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2">Show</Typography>
-            <FormControl size="small" sx={{ minWidth: 80 }}>
-              <Select
-                value={entries}
-                onChange={(e) => setEntries(Number(e.target.value))}
-                size="small"
-              >
-                <MenuItem value={10}>10</MenuItem>
-                <MenuItem value={25}>25</MenuItem>
-                <MenuItem value={50}>50</MenuItem>
-              </Select>
-            </FormControl>
-            <Typography variant="body2">entries</Typography>
+        <Stack direction={{ xs: "column", sm: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", sm: "center" }} spacing={2} sx={{ mb: 2 }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }} flexWrap="wrap">
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: { xs: 1, sm: 0 } }}>
+              <Typography variant="body2">Show</Typography>
+              <FormControl size="small" sx={{ minWidth: 80 }}>
+                <Select
+                  value={entries}
+                  onChange={(e) => setEntries(Number(e.target.value))}
+                  size="small"
+                >
+                  <MenuItem value={10}>10</MenuItem>
+                  <MenuItem value={25}>25</MenuItem>
+                  <MenuItem value={50}>50</MenuItem>
+                </Select>
+              </FormControl>
+              <Typography variant="body2">entries</Typography>
+            </Stack>
 
             {/* export buttons */}
-            <Button 
-              startIcon={<UploadFileOutlinedIcon />} 
-              size="small" 
-              onClick={handleExportCSV}
-              sx={{ ml: 1, textTransform: "none" }}
-            >
-              Export CSV
-            </Button>
-            <Button 
-              startIcon={<FileDownloadOutlinedIcon />} 
-              size="small" 
-              onClick={handleExportExcel}
-              sx={{ textTransform: "none" }}
-            >
-              Export Excel
-            </Button>
-            <Button 
-              startIcon={<PrintOutlinedIcon />} 
-              size="small" 
-              onClick={handlePrint}
-              sx={{ textTransform: "none" }}
-            >
-              Print
-            </Button>
-            <Button 
-              startIcon={<ViewColumnOutlinedIcon />} 
-              size="small" 
-              onClick={() => setColumnVisibilityOpen(true)}
-              sx={{ textTransform: "none" }}
-            >
-              Column visibility
-            </Button>
-            <Button 
-              startIcon={<UploadFileOutlinedIcon />} 
-              size="small" 
-              onClick={handleExportPDF}
-              sx={{ textTransform: "none" }}
-            >
-              Export PDF
-            </Button>
+            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
+              <Button 
+                startIcon={<UploadFileOutlinedIcon />} 
+                size="small" 
+                onClick={handleExportCSV}
+                sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "120px" } }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export </Box>CSV
+              </Button>
+              <Button 
+                startIcon={<FileDownloadOutlinedIcon />} 
+                size="small" 
+                onClick={handleExportExcel}
+                sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "120px" } }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export </Box>Excel
+              </Button>
+              <Button 
+                startIcon={<PrintOutlinedIcon />} 
+                size="small" 
+                onClick={handlePrint}
+                sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "80px" } }}
+              >
+                Print
+              </Button>
+              <Button 
+                startIcon={<ViewColumnOutlinedIcon />} 
+                size="small" 
+                onClick={() => setColumnVisibilityOpen(true)}
+                sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "140px" } }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Column </Box>Columns
+              </Button>
+              <Button 
+                startIcon={<UploadFileOutlinedIcon />} 
+                size="small" 
+                onClick={handleExportPDF}
+                sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "100px" } }}
+              >
+                PDF
+              </Button>
+            </Stack>
           </Stack>
 
           {/* Search */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" } }}>
             <TextField
               size="small"
               placeholder="Search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              fullWidth
+              sx={{ maxWidth: { xs: "100%", sm: "250px" } }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -593,13 +599,13 @@ export default function AllBusiness() {
         )}
 
         {/* Table */}
-        <Box sx={{ mt: 1 }}>
+        <Box sx={{ mt: 1, overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <Table size="small">
+            <Table size="small" sx={{ minWidth: 900 }}>
               <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
                 <TableRow>
                   {visibleColumns.registeredOn && <TableCell sx={{ width: 180 }}>Registered on</TableCell>}

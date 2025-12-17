@@ -152,12 +152,12 @@ export default function AddBusiness() {
   };
 
   return (
-    <Box sx={{ px: "42px", py: "30px", width: "100%" }}>
+    <Box sx={{ px: { xs: "16px", sm: "24px", md: "42px" }, py: { xs: "20px", sm: "30px" }, width: "100%" }}>
       {/* PAGE TITLE */}
       <Typography
         sx={{
           fontWeight: 700,
-          fontSize: "22px",
+          fontSize: { xs: "18px", sm: "22px" },
           color: "#0C2548",
           mb: "24px",
         }}

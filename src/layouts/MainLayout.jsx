@@ -60,7 +60,7 @@ export default function MainLayout() {
         <Box
           component="main"
           sx={{
-            p: 3,
+            p: { xs: 2, sm: 3 },
             pt: "84px",
             minHeight: "calc(100vh - 84px)",
           }}

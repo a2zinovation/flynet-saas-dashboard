@@ -88,13 +88,14 @@ export default function Packages() {
     <Box>
       {/* --- Header --- */}
       <Stack
-        direction="row"
+        direction={{ xs: "column", sm: "row" }}
         justifyContent="space-between"
-        alignItems="center"
+        alignItems={{ xs: "stretch", sm: "center" }}
+        spacing={{ xs: 2, sm: 0 }}
         sx={{ mb: 3 }}
       >
         <Box>
-          <Typography variant="h5" fontWeight="700">
+          <Typography variant="h5" fontWeight="700" sx={{ fontSize: { xs: "1.5rem", sm: "2rem" } }}>
             Packages
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -138,7 +139,7 @@ export default function Packages() {
           <Typography color="text.secondary">No packages available</Typography>
         </Box>
       ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 2, sm: 3 } }}>
           {packages.map((pkg) => (
             <PackageCard
               key={pkg.id}
