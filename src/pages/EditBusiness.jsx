@@ -17,6 +17,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import PhoneAndroidIcon from "@mui/icons-material/PhoneAndroid";
 import businessService from "../services/businessService";
 import packageService from "../services/packageService";
+import settingsService from "../services/settingsService";
 import AlternateEmailIcon from "@mui/icons-material/AlternateEmail";
 
 export default function EditBusiness() {
@@ -54,6 +55,7 @@ export default function EditBusiness() {
   const [logo, setLogo] = useState(null);
   const [currentLogo, setCurrentLogo] = useState("");
   const [packages, setPackages] = useState([]);
+  const [paymentGateways, setPaymentGateways] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -61,6 +63,7 @@ export default function EditBusiness() {
 
   useEffect(() => {
     fetchPackages();
+    fetchPaymentGateways();
     fetchBusiness();
   }, [id]);
 
@@ -68,6 +71,15 @@ export default function EditBusiness() {
     const result = await packageService.getAll();
     if (result.success) {
       setPackages(result.data);
+    }
+  };
+
+  const fetchPaymentGateways = async () => {
+    const result = await settingsService.getPaymentGateways();
+    if (result.success) {
+      // Filter only active gateways
+      const activeGateways = result.data.filter(gw => gw.is_active);
+      setPaymentGateways(activeGateways);
     }
   };
 
@@ -81,7 +93,7 @@ export default function EditBusiness() {
         id: business.id,
         // Business Details
         name: business.name || "",
-        start_date: business.start_date || "",
+        start_date: business.start_date ? business.start_date.split('T')[0] : "",
         phone: business.phone || "",
         alternate_phone: business.alternate_phone || "",
         country: business.country || "",
@@ -94,10 +106,10 @@ export default function EditBusiness() {
         website: business.website || "",
         
         // Owner Information
-        prefix: business.prefix || "",
-        first_name: business.first_name || "",
-        last_name: business.last_name || "",
-        username: business.username || "",
+        prefix: business?.users[0]?.prefix || "",
+        first_name: business?.users[0]?.first_name || "",
+        last_name: business?.users[0]?.last_name || "",
+        username: business?.users[0]?.username || "",
         email: business.email || "",
         
         // Package Information
@@ -336,26 +348,16 @@ export default function EditBusiness() {
             <Box sx={fieldBox}>
               <Typography sx={label}>Country*</Typography>
               <TextField 
-                select 
                 fullWidth 
                 size="small" 
+                placeholder="Country"
                 name="country"
                 value={form.country}
                 onChange={handle}
                 sx={input}
                 required
                 disabled={saving}
-              >
-                <MenuItem value="">Select Country</MenuItem>
-                <MenuItem value="USA">USA</MenuItem>
-                <MenuItem value="Canada">Canada</MenuItem>
-                <MenuItem value="UK">UK</MenuItem>
-                <MenuItem value="Australia">Australia</MenuItem>
-                <MenuItem value="Germany">Germany</MenuItem>
-                <MenuItem value="France">France</MenuItem>
-                <MenuItem value="India">India</MenuItem>
-                <MenuItem value="Pakistan">Pakistan</MenuItem>
-              </TextField>
+              />
             </Box>
 
             {/* City */}
@@ -411,10 +413,6 @@ export default function EditBusiness() {
                 <MenuItem value="USD">USD</MenuItem>
                 <MenuItem value="EUR">EUR</MenuItem>
                 <MenuItem value="GBP">GBP</MenuItem>
-                <MenuItem value="CAD">CAD</MenuItem>
-                <MenuItem value="AUD">AUD</MenuItem>
-                <MenuItem value="INR">INR</MenuItem>
-                <MenuItem value="PKR">PKR</MenuItem>
               </TextField>
             </Box>
 
@@ -674,7 +672,7 @@ export default function EditBusiness() {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Typography sx={label}>Paid Via:</Typography>
+            <Typography sx={label}>Payment Gateway:</Typography>
             <TextField 
               select 
               fullWidth 
@@ -685,13 +683,18 @@ export default function EditBusiness() {
               sx={input}
               disabled={saving}
             >
-              <MenuItem value="">Select Payment Method</MenuItem>
-              <MenuItem value="Card">Card</MenuItem>
-              <MenuItem value="Cash">Cash</MenuItem>
-              <MenuItem value="Bank">Bank Transfer</MenuItem>
-              <MenuItem value="PayPal">PayPal</MenuItem>
-              <MenuItem value="Stripe">Stripe</MenuItem>
+              <MenuItem value="">Select Payment Gateway</MenuItem>
+              {paymentGateways.map((gateway) => (
+                <MenuItem key={gateway.id} value={gateway.name}>
+                  {gateway.name}
+                </MenuItem>
+              ))}
             </TextField>
+            {paymentGateways.length === 0 && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                No payment gateways configured. Configure in Settings.
+              </Typography>
+            )}
           </Grid>
 
           <Grid item xs={12} md={4}>

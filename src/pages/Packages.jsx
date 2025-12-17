@@ -149,12 +149,8 @@ export default function Packages() {
                 max_cameras: pkg.max_cameras,
                 max_locations: pkg.max_locations,
                 max_users: pkg.max_users,
-                analytics_enabled: pkg.analytics_enabled === 1 || pkg.analytics_enabled === true,
-                api_access_enabled: pkg.api_access_enabled === 1 || pkg.api_access_enabled === true,
-                recording_enabled: pkg.recording_enabled === 1 || pkg.recording_enabled === true,
-                motion_detection_enabled: pkg.motion_detection_enabled === 1 || pkg.motion_detection_enabled === true,
               }}
-              priceText={`$ ${pkg.price} / ${pkg.duration_type}`}
+              priceText={`$ ${pkg.price} / ${(pkg.price_interval).charAt(0).toUpperCase() + (pkg.price_interval).substring(1)}`}
               footer={pkg.description || "Package details"}
               inactive={pkg.is_active == 0}
               onClick={() => openSubscriptions(pkg.id)}
@@ -266,12 +262,12 @@ function PackageCard({
 
         {/* Package Limits */}
         <Stack spacing={1} sx={{ my: 2 }}>
-          <Typography sx={{ fontSize: 13, color: "#4A4A4A", fontWeight: 500 }}>
+          <Typography sx={{ fontSize: 13, color: "#4A4A4A", fontWeight: 500 , textAlign: "center"}}>
             📹 Cameras: {features.max_cameras || 10} | 📍 Locations: {features.max_locations || 5} | 👥 Users: {features.max_users || 10}
           </Typography>
           
           {/* Features */}
-          <Stack direction="row" spacing={0.5} flexWrap="wrap" justifyContent="center" sx={{ mt: 1 }}>
+          {/* <Stack direction="row" spacing={0.5} flexWrap="wrap" justifyContent="center" sx={{ mt: 1 }}>
             {features.analytics_enabled && (
               <Chip label="Analytics" size="small" sx={{ fontSize: 10, height: 20 }} />
             )}
@@ -284,7 +280,7 @@ function PackageCard({
             {features.motion_detection_enabled && (
               <Chip label="Motion Detection" size="small" sx={{ fontSize: 10, height: 20 }} />
             )}
-          </Stack>
+          </Stack> */}
         </Stack>
 
         {/* Price */}

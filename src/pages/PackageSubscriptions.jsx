@@ -74,7 +74,7 @@ export default function PackageSubscription() {
           </Box>
 
           {/* Number of Locations */}
-          <Box sx={{ mb: "26px" }}>
+          {/* <Box sx={{ mb: "26px" }}>
             <Typography sx={LABEL}>Number of Locations:</Typography>
             <TextField
               fullWidth
@@ -90,7 +90,7 @@ export default function PackageSubscription() {
               }}
             />
             <Typography sx={CAPTION}>0 = infinite</Typography>
-          </Box>
+          </Box> */}
 
           {/* Number of Cameras */}
           <Box sx={{ mb: "26px" }}>
@@ -193,24 +193,6 @@ export default function PackageSubscription() {
             <Typography sx={CAPTION}>0 = infinite</Typography>
           </Box>
 
-          {/* Invoices */}
-          <Box sx={{ mb: "26px" }}>
-            <Typography sx={LABEL}>Number of Invoices:</Typography>
-            <TextField
-              fullWidth
-              size="small"
-              name="invoices"
-              placeholder="0 = infinite"
-              onChange={handle}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  height: "40px",
-                  borderRadius: "6px",
-                },
-              }}
-            />
-            <Typography sx={CAPTION}>0 = infinite</Typography>
-          </Box>
 
           {/* Interval */}
           <Box sx={{ mb: "26px" }}>

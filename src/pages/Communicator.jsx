@@ -175,7 +175,6 @@ export default function Communicator() {
   const getRecipientLabel = (recipientType) => {
     const labels = {
       'all': 'All Users',
-      'super_admins': 'Super Admins',
       'businesses': 'All Businesses',
       'business_users': 'Business Users',
       'specific': 'Specific Users'
@@ -248,7 +247,7 @@ export default function Communicator() {
               disabled={sending}
             >
               <MenuItem value="all">All Users (SaaS + VMS)</MenuItem>
-              <MenuItem value="super_admins">Super Admins Only</MenuItem>
+              {/* <MenuItem value="super_admins">Super Admins Only</MenuItem> */}
               <MenuItem value="businesses">All Business Admins</MenuItem>
               <MenuItem value="business_users">All Business Users (VMS)</MenuItem>
             </Select>

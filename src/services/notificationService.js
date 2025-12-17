@@ -1,45 +1,5 @@
 import apiClient from '../config/api';
-
-/**
- * Helper function to extract error messages from validation errors
- */
-const extractErrorMessage = (error) => {
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error.Message && typeof error.Message === 'object') {
-    const validationErrors = Object.values(error.Message)
-      .flat()
-      .join(', ');
-    return validationErrors || 'Validation failed';
-  }
-
-  if (error.Message) {
-    return error.Message;
-  }
-
-  if (error.message) {
-    return error.message;
-  }
-
-  return 'An unexpected error occurred';
-};
-
-/**
- * Helper function to check if response indicates success
- */
-const isSuccessResponse = (response) => {
-  if (response.hasOwnProperty('Success')) {
-    return response.Success === true;
-  }
-
-  if (response.hasOwnProperty('Status')) {
-    return response.Status >= 200 && response.Status < 300;
-  }
-
-  return true;
-};
+import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
 const notificationService = {
   /**
@@ -64,6 +24,7 @@ const notificationService = {
 
       const url = `/notifications${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await apiClient.get(url);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -75,21 +36,21 @@ const notificationService = {
         };
       }
 
-      // Backend may have reversed structure: Message contains data, Data contains message
-      const paginationData = response.Message || response.Data;
-      const successMessage = response.Data || response.Message;
+      // Handle both array and paginated response
+      const responseData = normalized.data;
+      const isArray = Array.isArray(responseData);
 
       return {
         success: true,
-        data: paginationData?.data || paginationData?.notifications || [],
-        pagination: paginationData?.current_page ? {
-          current_page: paginationData.current_page,
-          last_page: paginationData.last_page,
-          per_page: paginationData.per_page,
-          total: paginationData.total,
-        } : null,
-        unread_count: paginationData?.unread_count || 0,
-        message: typeof successMessage === 'string' ? successMessage : 'Notifications loaded successfully'
+        data: isArray ? responseData : (responseData?.data || responseData?.notifications || []),
+        pagination: isArray ? null : {
+          current_page: responseData?.current_page || 1,
+          last_page: responseData?.last_page || 1,
+          per_page: responseData?.per_page || 25,
+          total: responseData?.total || 0,
+        },
+        unread_count: responseData?.unread_count || 0,
+        message: normalized.message || 'Notifications loaded successfully'
       };
     } catch (error) {
       return {
@@ -110,6 +71,7 @@ const notificationService = {
   getById: async (id) => {
     try {
       const response = await apiClient.get(`/notifications/${id}`);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -121,8 +83,8 @@ const notificationService = {
 
       return {
         success: true,
-        data: response.Data,
-        message: response.Message || 'Notification loaded successfully'
+        data: normalized.data,
+        message: normalized.message || 'Notification loaded successfully'
       };
     } catch (error) {
       return {
@@ -142,6 +104,7 @@ const notificationService = {
     try {
       const payload = Array.isArray(ids) ? { ids } : { id: ids };
       const response = await apiClient.post('/notifications/mark-read', payload);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -152,7 +115,7 @@ const notificationService = {
 
       return {
         success: true,
-        message: response.Message || 'Notification(s) marked as read'
+        message: normalized.message || 'Notification(s) marked as read'
       };
     } catch (error) {
       return {
@@ -171,6 +134,7 @@ const notificationService = {
     try {
       const payload = Array.isArray(ids) ? { ids } : { id: ids };
       const response = await apiClient.post('/notifications/mark-unread', payload);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -181,7 +145,7 @@ const notificationService = {
 
       return {
         success: true,
-        message: response.Message || 'Notification(s) marked as unread'
+        message: normalized.message || 'Notification(s) marked as unread'
       };
     } catch (error) {
       return {
@@ -198,6 +162,7 @@ const notificationService = {
   markAllAsRead: async () => {
     try {
       const response = await apiClient.post('/notifications/mark-all-read');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -208,7 +173,7 @@ const notificationService = {
 
       return {
         success: true,
-        message: response.Message || 'All notifications marked as read'
+        message: normalized.message || 'All notifications marked as read'
       };
     } catch (error) {
       return {
@@ -227,6 +192,7 @@ const notificationService = {
     try {
       const payload = Array.isArray(ids) ? { ids } : { id: ids };
       const response = await apiClient.post('/notifications/delete', payload);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -237,7 +203,7 @@ const notificationService = {
 
       return {
         success: true,
-        message: response.Message || 'Notification(s) deleted successfully'
+        message: normalized.message || 'Notification(s) deleted successfully'
       };
     } catch (error) {
       return {
@@ -254,6 +220,7 @@ const notificationService = {
   deleteAllRead: async () => {
     try {
       const response = await apiClient.post('/notifications/delete-all-read');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -264,7 +231,7 @@ const notificationService = {
 
       return {
         success: true,
-        message: response.Message || 'All read notifications deleted'
+        message: normalized.message || 'All read notifications deleted'
       };
     } catch (error) {
       return {
@@ -281,6 +248,7 @@ const notificationService = {
   getUnreadCount: async () => {
     try {
       const response = await apiClient.get('/notifications/unread-count');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -290,10 +258,20 @@ const notificationService = {
         };
       }
 
+      // Normalize count: backend may return data as { count: N } or just a number
+      let count = 0;
+      if (normalized.data != null) {
+        if (typeof normalized.data === 'object' && Object.prototype.hasOwnProperty.call(normalized.data, 'count')) {
+          count = Number(normalized.data.count) || 0;
+        } else if (typeof normalized.data === 'number') {
+          count = Number(normalized.data) || 0;
+        }
+      }
+
       return {
         success: true,
-        count: response.Data?.count || response.Data || 0,
-        message: response.Message || 'Unread count retrieved'
+        count,
+        message: normalized.message || 'Unread count retrieved'
       };
     } catch (error) {
       return {

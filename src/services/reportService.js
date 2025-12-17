@@ -1,57 +1,5 @@
 import apiClient from '../config/api';
-
-/**
- * Helper function to extract error messages from validation errors
- * @param {Object|String} error - Error object or string
- * @returns {String} - Formatted error message
- */
-const extractErrorMessage = (error) => {
-  // If error is a string, return it directly
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  // If error.Message is an object (validation errors)
-  if (error.Message && typeof error.Message === 'object') {
-    const validationErrors = Object.values(error.Message)
-      .flat()
-      .join(', ');
-    return validationErrors || 'Validation failed';
-  }
-
-  // If error.Message is a string
-  if (error.Message) {
-    return error.Message;
-  }
-
-  // If error.message exists (standard JS error)
-  if (error.message) {
-    return error.message;
-  }
-
-  // Default fallback
-  return 'An unexpected error occurred';
-};
-
-/**
- * Helper function to check if response indicates success
- * @param {Object} response - API response
- * @returns {Boolean} - True if successful
- */
-const isSuccessResponse = (response) => {
-  // Check Success field explicitly
-  if (response.hasOwnProperty('Success')) {
-    return response.Success === true;
-  }
-
-  // Check Status field for success codes (200-299)
-  if (response.hasOwnProperty('Status')) {
-    return response.Status >= 200 && response.Status < 300;
-  }
-
-  // Fallback: assume success if no error indicators
-  return true;
-};
+import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
 const reportService = {
   /**
@@ -83,6 +31,7 @@ const reportService = {
 
       const url = `/activity-logs${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await apiClient.get(url);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -93,18 +42,22 @@ const reportService = {
         };
       }
 
+      // Handle both array and paginated response
+      const responseData = normalized.data;
+      const isArray = Array.isArray(responseData);
+
       return {
         success: true,
-        data: response.Data?.data || response.Data || [],
-        pagination: {
-          current_page: response.Data?.current_page || 1,
-          last_page: response.Data?.last_page || 1,
-          per_page: response.Data?.per_page || 25,
-          total: response.Data?.total || 0,
-          from: response.Data?.from || 0,
-          to: response.Data?.to || 0
+        data: isArray ? responseData : (responseData?.data || []),
+        pagination: isArray ? null : {
+          current_page: responseData?.current_page || 1,
+          last_page: responseData?.last_page || 1,
+          per_page: responseData?.per_page || 25,
+          total: responseData?.total || 0,
+          from: responseData?.from || 0,
+          to: responseData?.to || 0
         },
-        message: response.Message || 'Reports loaded successfully'
+        message: normalized.message || 'Reports loaded successfully'
       };
     } catch (error) {
       return {
@@ -124,6 +77,7 @@ const reportService = {
   getById: async (id) => {
     try {
       const response = await apiClient.get(`/activity-log/${id}`);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -135,8 +89,8 @@ const reportService = {
 
       return {
         success: true,
-        data: response.Data,
-        message: response.Message || 'Report loaded successfully'
+        data: normalized.data,
+        message: normalized.message || 'Report loaded successfully'
       };
     } catch (error) {
       return {
@@ -198,6 +152,7 @@ const reportService = {
   getFilterOptions: async () => {
     try {
       const response = await apiClient.get('/activity-logs/filters');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -209,7 +164,7 @@ const reportService = {
 
       return {
         success: true,
-        data: response.Data || { categories: [], actions: [], users: [] },
+        data: normalized.data || { categories: [], actions: [], users: [] },
         message: 'Filter options loaded successfully'
       };
     } catch (error) {
@@ -229,6 +184,7 @@ const reportService = {
   cleanup: async (before_date) => {
     try {
       const response = await apiClient.post('/activity-logs/cleanup', { before_date });
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -239,7 +195,7 @@ const reportService = {
 
       return {
         success: true,
-        message: response.Message || 'Logs cleaned up successfully'
+        message: normalized.message || 'Logs cleaned up successfully'
       };
     } catch (error) {
       return {

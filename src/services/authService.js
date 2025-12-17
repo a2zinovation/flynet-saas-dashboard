@@ -1,82 +1,31 @@
 import apiClient from '../config/api';
-
-/**
- * Helper function to extract error messages from validation errors
- * @param {Object|String} error - Error object or string
- * @returns {String} - Formatted error message
- */
-const extractErrorMessage = (error) => {
-  // If error is a string, return it directly
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  // If error.Message is an object (validation errors)
-  if (error.Message && typeof error.Message === 'object') {
-    const validationErrors = Object.values(error.Message)
-      .flat()
-      .join(', ');
-    return validationErrors || 'Validation failed';
-  }
-
-  // If error.Message is a string
-  if (error.Message) {
-    return error.Message;
-  }
-
-  // If error.message exists (standard JS error)
-  if (error.message) {
-    return error.message;
-  }
-
-  // Default fallback
-  return 'An unexpected error occurred';
-};
-
-/**
- * Helper function to check if response indicates success
- * @param {Object} response - API response
- * @returns {Boolean} - True if successful
- */
-const isSuccessResponse = (response) => {
-  // Check Success field explicitly
-  if (response.hasOwnProperty('Success')) {
-    return response.Success === true;
-  }
-
-  // Check Status field for success codes (200-299)
-  if (response.hasOwnProperty('Status')) {
-    return response.Status >= 200 && response.Status < 300;
-  }
-
-  // Fallback: assume success if no error indicators
-  return true;
-};
+import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
 const authService = {
   // Login
   login: async (email, password) => {
     try {
       const response = await apiClient.post('/login', { email, password });
+      const normalized = normalizeResponse(response);
       
-      // Check if response is successful
       if (!isSuccessResponse(response)) {
         return {
           success: false,
           message: extractErrorMessage(response),
-          validationErrors: typeof response.Message === 'object' ? response.Message : null
+          validationErrors: getValidationErrors(response)
         };
       }
 
-      // Check if token exists in response
-      if (response.Data && response.Data.token) {
-        // Store token and user data
-        localStorage.setItem('jwt_token', response.Data.token);
-        localStorage.setItem('flynet_user', JSON.stringify(response.Data));
+      // Handle both old (data.Data.token) and new (data.data.token/access_token) response formats
+      const tokenData = normalized.data || response.Data;
+      if (tokenData && (tokenData.token || tokenData.access_token)) {
+        const token = tokenData.token || tokenData.access_token;
+        localStorage.setItem('jwt_token', token);
+        localStorage.setItem('flynet_user', JSON.stringify(tokenData));
         return {
           success: true,
-          data: response.Data,
-          message: response.Message || 'Login successful'
+          data: tokenData,
+          message: normalized.message
         };
       }
       
@@ -88,7 +37,7 @@ const authService = {
       return { 
         success: false, 
         message: extractErrorMessage(error),
-        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+        validationErrors: getValidationErrors(error)
       };
     }
   },
@@ -97,6 +46,7 @@ const authService = {
   refreshToken: async () => {
     try {
       const response = await apiClient.post('/refresh');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -105,8 +55,10 @@ const authService = {
         };
       }
 
-      if (response.Data && response.Data.token) {
-        localStorage.setItem('jwt_token', response.Data.token);
+      const tokenData = normalized.data || response.Data;
+      if (tokenData && (tokenData.token || tokenData.access_token)) {
+        const token = tokenData.token || tokenData.access_token;
+        localStorage.setItem('jwt_token', token);
         return {
           success: true,
           message: 'Token refreshed successfully'
@@ -152,6 +104,7 @@ const authService = {
   testConnection: async () => {
     try {
       const response = await apiClient.get('/hello-world');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -162,13 +115,126 @@ const authService = {
 
       return {
         success: true,
-        data: response,
-        message: 'Connection successful'
+        data: normalized.data,
+        message: normalized.message
       };
     } catch (error) {
       return {
         success: false,
         message: extractErrorMessage(error)
+      };
+    }
+  },
+
+  // Update profile information
+  updateProfile: async (profileData) => {
+    try {
+      const response = await apiClient.post('/profile/update', profileData);
+      const normalized = normalizeResponse(response);
+
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      const userData = normalized.data || response.Data;
+      const currentUser = authService.getCurrentUser();
+      const mergedUser = currentUser ? { ...currentUser, ...userData } : userData;
+
+      if (mergedUser) {
+        localStorage.setItem('flynet_user', JSON.stringify(mergedUser));
+      }
+
+      return {
+        success: true,
+        data: mergedUser,
+        message: normalized.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        validationErrors: getValidationErrors(error)
+      };
+    }
+  },
+
+  // Update profile picture
+  updateProfilePicture: async (formData) => {
+    try {
+      const response = await apiClient.post('/profile/update-picture', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      const normalized = normalizeResponse(response);
+
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      const userData = normalized.data || response.Data;
+      const currentUser = authService.getCurrentUser();
+      const mergedUser = currentUser ? { ...currentUser, ...userData } : userData;
+
+      // Prefer full URL for display while keeping returned fields
+      if (userData?.profile_picture_url) {
+        mergedUser.profile_picture = userData.profile_picture;
+        mergedUser.profile_picture_url = userData.profile_picture_url;
+      }
+
+      if (mergedUser) {
+        localStorage.setItem('flynet_user', JSON.stringify(mergedUser));
+      }
+
+      return {
+        success: true,
+        data: mergedUser,
+        message: normalized.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        validationErrors: getValidationErrors(error)
+      };
+    }
+  },
+
+  // Change password
+  changePassword: async (currentPassword, newPassword, confirmPassword) => {
+    try {
+      const response = await apiClient.post('/profile/change-password', {
+        current_password: currentPassword,
+        password: newPassword,
+        password_confirmation: confirmPassword
+      });
+      const normalized = normalizeResponse(response);
+
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: normalized.message
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        validationErrors: getValidationErrors(error)
       };
     }
   },

@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
@@ -34,6 +35,10 @@ import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import ViewColumnOutlinedIcon from "@mui/icons-material/ViewColumnOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ToggleOnIcon from "@mui/icons-material/ToggleOn";
+import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import { useNavigate } from "react-router-dom";
 import businessService from "../services/businessService";
 
@@ -60,6 +65,25 @@ export default function AllBusiness() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    status: "all",
+    package: "all",
+    dateFrom: "",
+    dateTo: "",
+  });
+
+  // Column visibility state
+  const [columnVisibilityOpen, setColumnVisibilityOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    registeredOn: true,
+    businessName: true,
+    email: true,
+    contact: true,
+    status: true,
+    subscription: true,
+  });
 
   // Fetch businesses from API
   useEffect(() => {
@@ -106,23 +130,241 @@ export default function AllBusiness() {
     setDeleteDialog({ open: false, id: null });
   };
 
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      status: "all",
+      package: "all",
+      dateFrom: "",
+      dateTo: "",
+    });
+  };
+
   const filtered = useMemo(() => {
+    let result = rows;
+
+    // Apply search filter
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [
-        r.name,
-        r.owner,
-        r.email,
-        r.id,
-        r.phone,
-        r.address,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [rows, search]);
+    if (q) {
+      result = result.filter((r) =>
+        [
+          r.name,
+          r.email,
+          r.id,
+          r.phone,
+          r.address,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+
+    // Apply status filter
+    if (filters.status !== "all") {
+      result = result.filter((r) => {
+        if (filters.status === "active") return r.is_active == 1;
+        if (filters.status === "inactive") return r.is_active != 1;
+        return true;
+      });
+    }
+
+    // Apply package filter
+    if (filters.package !== "all") {
+      result = result.filter((r) => {
+        if (filters.package === "no-package") return !r.subscription_package?.name;
+        return r.subscription_package?.name === filters.package;
+      });
+    }
+
+    // Apply date range filter
+    if (filters.dateFrom) {
+      const fromDate = new Date(filters.dateFrom);
+      result = result.filter((r) => {
+        if (!r.created_at) return false;
+        const rowDate = new Date(r.created_at);
+        return rowDate >= fromDate;
+      });
+    }
+
+    if (filters.dateTo) {
+      const toDate = new Date(filters.dateTo);
+      toDate.setHours(23, 59, 59, 999); // End of day
+      result = result.filter((r) => {
+        if (!r.created_at) return false;
+        const rowDate = new Date(r.created_at);
+        return rowDate <= toDate;
+      });
+    }
+
+    return result;
+  }, [rows, search, filters]);
+
+  // Get unique packages for filter dropdown
+  const availablePackages = useMemo(() => {
+    const packages = new Set();
+    rows.forEach(row => {
+      if (row.subscription_package?.name) {
+        packages.add(row.subscription_package.name);
+      }
+    });
+    return Array.from(packages).sort();
+  }, [rows]);
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    const headers = [];
+    const keys = [];
+    
+    if (visibleColumns.registeredOn) { headers.push("Registered On"); keys.push("created_at"); }
+    if (visibleColumns.businessName) { headers.push("Business Name"); keys.push("name"); }
+    if (visibleColumns.email) { headers.push("Email"); keys.push("email"); }
+    if (visibleColumns.contact) { headers.push("Business Contact"); keys.push("phone"); }
+    if (visibleColumns.status) { headers.push("Status"); keys.push("is_active"); }
+    if (visibleColumns.subscription) { headers.push("Current Subscription"); keys.push("subscription"); }
+
+    const csvContent = [
+      headers.join(","),
+      ...filtered.map(row => 
+        keys.map(key => {
+          if (key === "created_at") return row.created_at ? new Date(row.created_at).toLocaleString() : "";
+          if (key === "is_active") return row.is_active == 1 ? "Active" : "Inactive";
+          if (key === "subscription") return row.subscription_package?.name || "No Package";
+          return `"${(row[key] || "").toString().replace(/"/g, '""')}"`;
+        }).join(",")
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `businesses_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Export to Excel (using HTML table method)
+  const handleExportExcel = () => {
+    const headers = [];
+    if (visibleColumns.registeredOn) headers.push("Registered On");
+    if (visibleColumns.businessName) headers.push("Business Name");
+    if (visibleColumns.email) headers.push("Email");
+    if (visibleColumns.contact) headers.push("Business Contact");
+    if (visibleColumns.status) headers.push("Status");
+    if (visibleColumns.subscription) headers.push("Current Subscription");
+
+    let tableHTML = '<table><thead><tr>';
+    headers.forEach(h => tableHTML += `<th>${h}</th>`);
+    tableHTML += '</tr></thead><tbody>';
+
+    filtered.forEach(row => {
+      tableHTML += '<tr>';
+      if (visibleColumns.registeredOn) tableHTML += `<td>${row.created_at ? new Date(row.created_at).toLocaleString() : ""}</td>`;
+      if (visibleColumns.businessName) tableHTML += `<td>${row.name || ""}</td>`;
+      if (visibleColumns.email) tableHTML += `<td>${row.email || ""}</td>`;
+      if (visibleColumns.contact) tableHTML += `<td>${row.phone || ""}</td>`;
+      if (visibleColumns.status) tableHTML += `<td>${row.is_active == 1 ? "Active" : "Inactive"}</td>`;
+      if (visibleColumns.subscription) tableHTML += `<td>${row.subscription_package?.name || "No Package"}</td>`;
+      tableHTML += '</tr>';
+    });
+
+    tableHTML += '</tbody></table>';
+
+    const blob = new Blob([tableHTML], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `businesses_${new Date().toISOString().split('T')[0]}.xls`;
+    link.click();
+  };
+
+  // Export to PDF
+  const handleExportPDF = () => {
+    const headers = [];
+    if (visibleColumns.registeredOn) headers.push("Registered On");
+    if (visibleColumns.businessName) headers.push("Business Name");
+    if (visibleColumns.email) headers.push("Email");
+    if (visibleColumns.contact) headers.push("Contact");
+    if (visibleColumns.status) headers.push("Status");
+    if (visibleColumns.subscription) headers.push("Subscription");
+
+    const data = filtered.map(row => {
+      const rowData = [];
+      if (visibleColumns.registeredOn) rowData.push(row.created_at ? new Date(row.created_at).toLocaleDateString() : "");
+      if (visibleColumns.businessName) rowData.push(row.name || "");
+      if (visibleColumns.email) rowData.push(row.email || "");
+      if (visibleColumns.contact) rowData.push(row.phone || "");
+      if (visibleColumns.status) rowData.push(row.is_active == 1 ? "Active" : "Inactive");
+      if (visibleColumns.subscription) rowData.push(row.subscription_package?.name || "No Package");
+      return rowData;
+    });
+
+    // Simple PDF generation using window.print with formatted content
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Business List</title>');
+    printWindow.document.write('<style>table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#f2f2f2;}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h2>All Businesses</h2>');
+    printWindow.document.write('<table><thead><tr>');
+    headers.forEach(h => printWindow.document.write(`<th>${h}</th>`));
+    printWindow.document.write('</tr></thead><tbody>');
+    data.forEach(row => {
+      printWindow.document.write('<tr>');
+      row.forEach(cell => printWindow.document.write(`<td>${cell}</td>`));
+      printWindow.document.write('</tr>');
+    });
+    printWindow.document.write('</tbody></table></body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  // Print functionality
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Business List</title>');
+    printWindow.document.write('<style>body{font-family:Arial,sans-serif;}table{width:100%;border-collapse:collapse;margin-top:20px;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background-color:#0C2548;color:white;}tr:nth-child(even){background-color:#f9f9f9;}</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h1>All Businesses</h1>');
+    printWindow.document.write(`<p>Generated on: ${new Date().toLocaleString()}</p>`);
+    printWindow.document.write('<table><thead><tr>');
+    
+    if (visibleColumns.registeredOn) printWindow.document.write('<th>Registered On</th>');
+    if (visibleColumns.businessName) printWindow.document.write('<th>Business Name</th>');
+    if (visibleColumns.email) printWindow.document.write('<th>Email</th>');
+    if (visibleColumns.contact) printWindow.document.write('<th>Contact</th>');
+    if (visibleColumns.status) printWindow.document.write('<th>Status</th>');
+    if (visibleColumns.subscription) printWindow.document.write('<th>Subscription</th>');
+    
+    printWindow.document.write('</tr></thead><tbody>');
+    
+    filtered.forEach(row => {
+      printWindow.document.write('<tr>');
+      if (visibleColumns.registeredOn) printWindow.document.write(`<td>${row.created_at ? new Date(row.created_at).toLocaleString() : "—"}</td>`);
+      if (visibleColumns.businessName) printWindow.document.write(`<td>${row.name || "—"}</td>`);
+      if (visibleColumns.email) printWindow.document.write(`<td>${row.email || "—"}</td>`);
+      if (visibleColumns.contact) printWindow.document.write(`<td>${row.phone || "—"}</td>`);
+      if (visibleColumns.status) printWindow.document.write(`<td>${row.is_active == 1 ? "Active" : "Inactive"}</td>`);
+      if (visibleColumns.subscription) printWindow.document.write(`<td>${row.subscription_package?.name || "No Package"}</td>`);
+      printWindow.document.write('</tr>');
+    });
+    
+    printWindow.document.write('</tbody></table></body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
+  const handleToggleColumn = (column) => {
+    setVisibleColumns(prev => ({ ...prev, [column]: !prev[column] }));
+  };
 
   return (
     <Box>
@@ -137,12 +379,12 @@ export default function AllBusiness() {
         </Box>
 
         {/* Top controls (language etc are in header; here we keep actions) */}
-        <Stack direction="row" spacing={0} alignItems="center">
+        <Stack direction="row" spacing={2} alignItems="center">
           <Button
             startIcon={<FilterListIcon />}
             variant="outlined"
             onClick={() => setFilterOpen((s) => !s)}
-            sx={{ textTransform: "none", borderRadius: 2,mr :2 }}  // ← moves button to the right
+            sx={{ textTransform: "none", borderRadius: 2 }}
           >
             Filters
           </Button>
@@ -153,12 +395,10 @@ export default function AllBusiness() {
               textTransform: "none",
               borderRadius: 2,
               backgroundColor: "#0C2548",
-              mr:5         // ← moves button to the right
             }}
           >
             Add
           </Button>
-
         </Stack>
       </Stack>
 
@@ -193,19 +433,44 @@ export default function AllBusiness() {
             <Typography variant="body2">entries</Typography>
 
             {/* export buttons */}
-            <Button startIcon={<UploadFileOutlinedIcon />} size="small" sx={{ ml: 1, textTransform: "none" }}>
+            <Button 
+              startIcon={<UploadFileOutlinedIcon />} 
+              size="small" 
+              onClick={handleExportCSV}
+              sx={{ ml: 1, textTransform: "none" }}
+            >
               Export CSV
             </Button>
-            <Button startIcon={<FileDownloadOutlinedIcon />} size="small" sx={{ textTransform: "none" }}>
+            <Button 
+              startIcon={<FileDownloadOutlinedIcon />} 
+              size="small" 
+              onClick={handleExportExcel}
+              sx={{ textTransform: "none" }}
+            >
               Export Excel
             </Button>
-            <Button startIcon={<PrintOutlinedIcon />} size="small" sx={{ textTransform: "none" }}>
+            <Button 
+              startIcon={<PrintOutlinedIcon />} 
+              size="small" 
+              onClick={handlePrint}
+              sx={{ textTransform: "none" }}
+            >
               Print
             </Button>
-            <Button startIcon={<ViewColumnOutlinedIcon />} size="small" sx={{ textTransform: "none" }}>
+            <Button 
+              startIcon={<ViewColumnOutlinedIcon />} 
+              size="small" 
+              onClick={() => setColumnVisibilityOpen(true)}
+              sx={{ textTransform: "none" }}
+            >
               Column visibility
             </Button>
-            <Button startIcon={<UploadFileOutlinedIcon />} size="small" sx={{ textTransform: "none" }}>
+            <Button 
+              startIcon={<UploadFileOutlinedIcon />} 
+              size="small" 
+              onClick={handleExportPDF}
+              sx={{ textTransform: "none" }}
+            >
               Export PDF
             </Button>
           </Stack>
@@ -230,11 +495,98 @@ export default function AllBusiness() {
 
         {/* Filters panel (toggles below toolbar) */}
         {filterOpen && (
-          <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 1 }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Typography variant="body2">Filter placeholder — add filters here</Typography>
-              <Button size="small" variant="contained" onClick={() => setFilterOpen(false)} sx={{ ml: "auto", textTransform: "none" }}>
-                Apply
+          <Paper variant="outlined" sx={{ p: 3, mb: 2, borderRadius: 2, backgroundColor: "#F9FAFB" }}>
+            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2 }}>
+              Filter Businesses
+            </Typography>
+            
+            <Grid container spacing={2}>
+              {/* Status Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Status
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.status}
+                    onChange={(e) => handleFilterChange("status", e.target.value)}
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Package Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Subscription Package
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <Select
+                    value={filters.package}
+                    onChange={(e) => handleFilterChange("package", e.target.value)}
+                  >
+                    <MenuItem value="all">All Packages</MenuItem>
+                    <MenuItem value="no-package">No Package</MenuItem>
+                    {availablePackages.map((pkg) => (
+                      <MenuItem key={pkg} value={pkg}>
+                        {pkg}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {/* Date From Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Registered From
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  value={filters.dateFrom}
+                  onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+
+              {/* Date To Filter */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Registered To
+                </Typography>
+                <TextField
+                  fullWidth
+                  type="date"
+                  size="small"
+                  value={filters.dateTo}
+                  onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+            </Grid>
+
+            {/* Filter Actions */}
+            <Stack direction="row" spacing={2} sx={{ mt: 3 }} justifyContent="flex-end">
+              <Button 
+                size="small" 
+                variant="outlined" 
+                onClick={handleClearFilters}
+                sx={{ textTransform: "none" }}
+              >
+                Clear Filters
+              </Button>
+              <Button 
+                size="small" 
+                variant="contained" 
+                onClick={() => setFilterOpen(false)}
+                sx={{ textTransform: "none", backgroundColor: "#0C2548" }}
+              >
+                Apply Filters
               </Button>
             </Stack>
           </Paper>
@@ -250,13 +602,12 @@ export default function AllBusiness() {
             <Table size="small">
               <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
                 <TableRow>
-                  <TableCell sx={{ width: 180 }}>Registered on</TableCell>
-                  <TableCell>Business Name</TableCell>
-                  <TableCell>Owner</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Business Contact</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Current Subscription</TableCell>
+                  {visibleColumns.registeredOn && <TableCell sx={{ width: 180 }}>Registered on</TableCell>}
+                  {visibleColumns.businessName && <TableCell>Business Name</TableCell>}
+                  {visibleColumns.email && <TableCell>Email</TableCell>}
+                  {visibleColumns.contact && <TableCell>Business Contact</TableCell>}
+                  {visibleColumns.status && <TableCell>Status</TableCell>}
+                  {visibleColumns.subscription && <TableCell>Current Subscription</TableCell>}
                   <TableCell align="center">Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -264,63 +615,88 @@ export default function AllBusiness() {
               <TableBody>
                 {filtered.slice(0, entries).map((row) => (
                   <TableRow key={row.id} hover>
-                    <TableCell>
-                      {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Typography fontWeight={600}>{row.name || "—"}</Typography>
-                    </TableCell>
-                    <TableCell>{row.owner || "—"}</TableCell>
-                    <TableCell>{row.email || "—"}</TableCell>
-                    <TableCell>{row.phone || "—"}</TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={row.is_active == 1 ? "Active" : "Inactive"} 
-                        color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
-                        size="small" 
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {row.subscription_package?.name || "No Package"}
-                    </TableCell>
+                    {visibleColumns.registeredOn && (
+                      <TableCell>
+                        {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
+                      </TableCell>
+                    )}
+                    {visibleColumns.businessName && (
+                      <TableCell>
+                        <Typography fontWeight={600}>{row.name || "—"}</Typography>
+                      </TableCell>
+                    )}
+                    {visibleColumns.email && <TableCell>{row.email || "—"}</TableCell>}
+                    {visibleColumns.contact && <TableCell>{row.phone || "—"}</TableCell>}
+                    {visibleColumns.status && (
+                      <TableCell>
+                        <Chip 
+                          label={row.is_active == 1 ? "Active" : "Inactive"} 
+                          color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
+                          size="small" 
+                        />
+                      </TableCell>
+                    )}
+                    {visibleColumns.subscription && (
+                      <TableCell>
+                        {row.subscription_package?.name || "No Package"}
+                      </TableCell>
+                    )}
                     <TableCell align="center">
-                      <Stack direction="column" spacing={0.5} alignItems="flex-end">
-                        <Button 
-                          size="small" 
-                          variant="outlined" 
-                          sx={{ textTransform: "none", minWidth: 84 }}
-                          onClick={() => navigate(`/edit-business/${row.id}`)}
-                        >
-                          Manage
-                        </Button>
-                        {/* <Button 
-                          size="small" 
-                          variant="contained" 
-                          color="info" 
-                          sx={{ textTransform: "none", minWidth: 84 }}
-                          onClick={() => navigate(`/add-subscription/${row.id}`)}
-                        >
-                          Add Subscription
-                        </Button> */}
-                        <Stack direction="row" spacing={1}>
-                          <Button 
-                            size="small" 
-                            color="error" 
-                            variant="text" 
-                            sx={{ textTransform: "none" }}
+                      <Stack direction="row" spacing={1} justifyContent="center">
+                        <Tooltip title="Edit Business">
+                          <IconButton
+                            size="small"
+                            onClick={() => navigate(`/edit-business/${row.id}`)}
+                            sx={{
+                              backgroundColor: "#E3F2FD",
+                              color: "#1976D2",
+                              borderRadius: "8px",
+                              "&:hover": {
+                                backgroundColor: "#BBDEFB",
+                              },
+                            }}
+                          >
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        
+                        <Tooltip title={row.is_active == 1 ? 'Deactivate' : 'Activate'}>
+                          <IconButton
+                            size="small"
                             onClick={() => handleToggleStatus(row.id)}
+                            sx={{
+                              backgroundColor: row.is_active == 1 ? "#e0ffe1ff" : "#E8F5E9",
+                              color: row.is_active == 1 ? "#00b55aff" : "#388E3C",
+                              borderRadius: "8px",
+                              "&:hover": {
+                                backgroundColor: row.is_active == 1 ? "#b2ffc5ff" : "#C8E6C9",
+                              },
+                            }}
                           >
-                            {row.is_active == 1 ? 'Deactivate' : 'Activate'}
-                          </Button>
-                          <Button 
-                            size="small" 
-                            variant="text" 
-                            sx={{ color: "#0C2548", textTransform: "none" }}
+                            {row.is_active == 1 ? (
+                              <ToggleOffIcon fontSize="small" />
+                            ) : (
+                              <ToggleOnIcon fontSize="small" />
+                            )}
+                          </IconButton>
+                        </Tooltip>
+                        
+                        <Tooltip title="Delete Business">
+                          <IconButton
+                            size="small"
                             onClick={() => handleDeleteClick(row.id)}
+                            sx={{
+                              backgroundColor: "#FFEBEE",
+                              color: "#D32F2F",
+                              borderRadius: "8px",
+                              "&:hover": {
+                                backgroundColor: "#FFCDD2",
+                              },
+                            }}
                           >
-                            Delete
-                          </Button>
-                        </Stack>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       </Stack>
                     </TableCell>
                   </TableRow>
@@ -328,7 +704,7 @@ export default function AllBusiness() {
 
                 {filtered.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                    <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} align="center" sx={{ py: 8 }}>
                       <Typography color="text.secondary">No businesses found</Typography>
                     </TableCell>
                   </TableRow>
@@ -361,6 +737,51 @@ export default function AllBusiness() {
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Column Visibility Dialog */}
+      <Dialog open={columnVisibilityOpen} onClose={() => setColumnVisibilityOpen(false)}>
+        <DialogTitle>Column Visibility</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Select which columns to display in the table
+          </Typography>
+          <Stack spacing={1.5}>
+            {[
+              { key: 'registeredOn', label: 'Registered On' },
+              { key: 'businessName', label: 'Business Name' },
+              { key: 'email', label: 'Email' },
+              { key: 'contact', label: 'Business Contact' },
+              { key: 'status', label: 'Status' },
+              { key: 'subscription', label: 'Current Subscription' },
+            ].map((column) => (
+              <Stack 
+                key={column.key}
+                direction="row" 
+                alignItems="center" 
+                spacing={1}
+                sx={{ 
+                  cursor: 'pointer',
+                  '&:hover': { backgroundColor: 'action.hover' },
+                  p: 1,
+                  borderRadius: 1,
+                }}
+                onClick={() => handleToggleColumn(column.key)}
+              >
+                <input
+                  type="checkbox"
+                  checked={visibleColumns[column.key]}
+                  onChange={() => handleToggleColumn(column.key)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <Typography>{column.label}</Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setColumnVisibilityOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

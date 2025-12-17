@@ -1,49 +1,5 @@
 import apiClient from '../config/api';
-
-/**
- * Helper function to extract error messages from validation errors
- * @param {Object|String} error - Error object or string
- * @returns {String} - Formatted error message
- */
-const extractErrorMessage = (error) => {
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  if (error.Message && typeof error.Message === 'object') {
-    const validationErrors = Object.values(error.Message)
-      .flat()
-      .join(', ');
-    return validationErrors || 'Validation failed';
-  }
-
-  if (error.Message) {
-    return error.Message;
-  }
-
-  if (error.message) {
-    return error.message;
-  }
-
-  return 'An unexpected error occurred';
-};
-
-/**
- * Helper function to check if response indicates success
- * @param {Object} response - API response
- * @returns {Boolean} - True if successful
- */
-const isSuccessResponse = (response) => {
-  if (response.hasOwnProperty('Success')) {
-    return response.Success === true;
-  }
-
-  if (response.hasOwnProperty('Status')) {
-    return response.Status >= 200 && response.Status < 300;
-  }
-
-  return true;
-};
+import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
 const communicatorService = {
   /**
@@ -60,27 +16,28 @@ const communicatorService = {
   sendMessage: async (messageData) => {
     try {
       const response = await apiClient.post('/notifications/send', messageData);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
           success: false,
           message: extractErrorMessage(response),
           data: null,
-          validationErrors: typeof response.Message === 'object' ? response.Message : null
+          validationErrors: getValidationErrors(response)
         };
       }
 
       return {
         success: true,
-        data: response.Data,
-        message: response.Message || 'Message sent successfully'
+        data: normalized.data,
+        message: normalized.message || 'Message sent successfully'
       };
     } catch (error) {
       return {
         success: false,
         message: extractErrorMessage(error),
         data: null,
-        validationErrors: error.Message && typeof error.Message === 'object' ? error.Message : null
+        validationErrors: getValidationErrors(error)
       };
     }
   },
@@ -103,6 +60,7 @@ const communicatorService = {
 
       const url = `/notifications/sent${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
       const response = await apiClient.get(url);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -113,20 +71,20 @@ const communicatorService = {
         };
       }
 
-      // Backend has reversed structure: Message contains pagination data, Data contains success message
-      const paginationData = response.Message || response.Data;
-      const successMessage = response.Data || response.Message;
+      // Handle both array and paginated response
+      const responseData = normalized.data;
+      const isArray = Array.isArray(responseData);
 
       return {
         success: true,
-        data: paginationData?.data || [],
-        pagination: paginationData?.current_page ? {
-          current_page: paginationData.current_page,
-          last_page: paginationData.last_page,
-          per_page: paginationData.per_page,
-          total: paginationData.total,
-        } : null,
-        message: typeof successMessage === 'string' ? successMessage : 'Message history loaded successfully'
+        data: isArray ? responseData : (responseData?.data || []),
+        pagination: isArray ? null : {
+          current_page: responseData?.current_page || 1,
+          last_page: responseData?.last_page || 1,
+          per_page: responseData?.per_page || 25,
+          total: responseData?.total || 0,
+        },
+        message: normalized.message || 'Message history loaded successfully'
       };
     } catch (error) {
       return {
@@ -146,6 +104,7 @@ const communicatorService = {
   getMessageById: async (id) => {
     try {
       const response = await apiClient.get(`/notifications/sent/${id}`);
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -157,8 +116,8 @@ const communicatorService = {
 
       return {
         success: true,
-        data: response.Data,
-        message: response.Message || 'Message loaded successfully'
+        data: normalized.data,
+        message: normalized.message || 'Message loaded successfully'
       };
     } catch (error) {
       return {
@@ -176,6 +135,7 @@ const communicatorService = {
   getRecipientOptions: async () => {
     try {
       const response = await apiClient.get('/notifications/recipients');
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -187,8 +147,8 @@ const communicatorService = {
 
       return {
         success: true,
-        data: response.Data || { businesses: [], users: [], groups: [] },
-        message: response.Message || 'Recipient options loaded successfully'
+        data: normalized.data || { businesses: [], users: [], groups: [] },
+        message: normalized.message || 'Recipient options loaded successfully'
       };
     } catch (error) {
       return {
@@ -207,6 +167,7 @@ const communicatorService = {
   deleteMessage: async (id) => {
     try {
       const response = await apiClient.post('/notifications/delete', { id });
+      const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
         return {
@@ -217,7 +178,7 @@ const communicatorService = {
 
       return {
         success: true,
-        message: response.Message || 'Message deleted successfully'
+        message: normalized.message || 'Message deleted successfully'
       };
     } catch (error) {
       return {

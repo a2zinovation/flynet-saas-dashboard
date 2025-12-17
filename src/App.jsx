@@ -10,6 +10,7 @@ import AllBusiness from "./pages/AllBusiness";
 import AddBusiness from "./pages/AddBusiness";
 import EditBusiness from "./pages/EditBusiness";
 import Packages from "./pages/Packages";
+import ActivityLog from "./pages/ActivityLog";
 import AddPackage from "./pages/AddPackage";
 import EditPackage from "./pages/EditPackage";
 import PackageSubscriptions from "./pages/PackageSubscriptions";
@@ -22,16 +23,20 @@ import Profile from "./pages/Profile";   // ⭐ NEW
 // AUTH
 import Login from "./pages/Auth/Login";
 import RequireAuth from "./components/auth/RequireAuth";
-
+import AuthLayout from "./layouts/AuthLayout";
 export default function App() {
   return (
     <Routes>
 
-      {/* PUBLIC */}
-      <Route path="/login" element={<Login />} />
+      {/* PUBLIC ROUTES */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<Login />} />
+      </Route>
+
+      {/* DEFAULT REDIRECT */}
       <Route path="/" element={<Navigate to="/dashboard" />} />
 
-      {/* PROTECTED */}
+      {/* PROTECTED ROUTES */}
       <Route
         element={
           <RequireAuth>
@@ -40,27 +45,24 @@ export default function App() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
-
         <Route path="/all-business" element={<AllBusiness />} />
         <Route path="/add-business" element={<AddBusiness />} />
         <Route path="/edit-business/:id" element={<EditBusiness />} />
-
+        <Route path="/activity" element={<ActivityLog />} />
         <Route path="/packages" element={<Packages />} />
         <Route path="/add-package" element={<AddPackage />} />
         <Route path="/edit-package/:id" element={<EditPackage />} />
         <Route path="/package-subscription" element={<PackageSubscriptions />} />
-
-        <Route path="/reports" element={<Reports />} />
         <Route path="/communicator" element={<Communicator />} />
-
         <Route path="/notification-center" element={<NotificationCenter />} />
+        <Route path="/reports" element={<Reports />} />
         <Route path="/settings" element={<Settings />} />
-
-        <Route path="/profile" element={<Profile />} /> {/* ⭐ NEW */}
+        <Route path="/profile" element={<Profile />} />
       </Route>
 
-      {/* 404 → HOME */}
+      {/* 404 */}
       <Route path="*" element={<Navigate to="/" />} />
+
     </Routes>
   );
 }

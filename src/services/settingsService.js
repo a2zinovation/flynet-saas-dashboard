@@ -1,39 +1,14 @@
 import apiClient from '../config/api';
 import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
-const packageService = {
-  // Get all packages
+const settingsService = {
+  /**
+   * Get all settings
+   * @returns {Object} - { success, data, message }
+   */
   getAll: async () => {
     try {
-      const response = await apiClient.get('/subscription-package');
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response),
-          data: []
-        };
-      }
-
-      return {
-        success: true,
-        data: normalized.data || [],
-        message: normalized.message || 'Packages loaded successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error),
-        data: []
-      };
-    }
-  },
-
-  // Get package by ID
-  getById: async (id) => {
-    try {
-      const response = await apiClient.get(`/subscription-package-by-id/${id}`);
+      const response = await apiClient.get('/settings');
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -47,7 +22,7 @@ const packageService = {
       return {
         success: true,
         data: normalized.data,
-        message: normalized.message || 'Package loaded successfully'
+        message: normalized.message || 'Settings loaded successfully'
       };
     } catch (error) {
       return {
@@ -58,149 +33,13 @@ const packageService = {
     }
   },
 
-  // Create package
-  create: async (packageData) => {
+  /**
+   * Get super admin settings
+   * @returns {Object} - { success, data, message }
+   */
+  getSuperAdminSettings: async () => {
     try {
-      const response = await apiClient.post('/subscription-package-save', packageData);
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response),
-          data: null,
-          validationErrors: getValidationErrors(response)
-        };
-      }
-
-      return {
-        success: true,
-        data: normalized.data,
-        message: normalized.message || 'Package created successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error),
-        data: null,
-        validationErrors: getValidationErrors(error)
-      };
-    }
-  },
-
-  // Update package
-  update: async (packageData) => {
-    try {
-      const response = await apiClient.post('/subscription-package-update', packageData);
-      
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response),
-          data: null,
-          validationErrors: getValidationErrors(response)
-        };
-      }
-
-      return {
-        success: true,
-        data: normalized.data,
-        message: normalized.message || 'Package updated successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error),
-        data: null,
-        validationErrors: getValidationErrors(error)
-      };
-    }
-  },
-
-  // Toggle package status
-  toggleStatus: async (id) => {
-    try {
-      const response = await apiClient.post('/subscription-package-status', { id });
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response)
-        };
-      }
-
-      return {
-        success: true,
-        message: normalized.message || 'Package status updated successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error)
-      };
-    }
-  },
-
-  // Delete package
-  delete: async (id) => {
-    try {
-      const response = await apiClient.post('/subscription-package-delete', { id });
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response)
-        };
-      }
-
-      return {
-        success: true,
-        message: normalized.message || 'Package deleted successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error)
-      };
-    }
-  },
-
-  // Get all features
-  getAllFeatures: async () => {
-    try {
-      const response = await apiClient.get('/subscription-package-feature');
-      const normalized = normalizeResponse(response);
-      
-      if (!isSuccessResponse(response)) {
-        return {
-          success: false,
-          message: extractErrorMessage(response),
-          data: []
-        };
-      }
-
-      return {
-        success: true,
-        data: normalized.data || [],
-        message: normalized.message || 'Features loaded successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: extractErrorMessage(error),
-        data: []
-      };
-    }
-  },
-
-  // Get feature by ID
-  getFeatureById: async (id) => {
-    try {
-      const response = await apiClient.get(`/subscription-package-feature-by-id/${id}`);
+      const response = await apiClient.get('/settings');
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -214,7 +53,7 @@ const packageService = {
       return {
         success: true,
         data: normalized.data,
-        message: normalized.message || 'Feature loaded successfully'
+        message: normalized.message || 'Super admin settings loaded successfully'
       };
     } catch (error) {
       return {
@@ -225,10 +64,14 @@ const packageService = {
     }
   },
 
-  // Create feature
-  createFeature: async (featureData) => {
+  /**
+   * Update super admin settings
+   * @param {Object} settingsData
+   * @returns {Object} - { success, data, message }
+   */
+  updateSuperAdminSettings: async (settingsData) => {
     try {
-      const response = await apiClient.post('/subscription-package-feature-save', featureData);
+      const response = await apiClient.post('/settings', settingsData);
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -243,7 +86,7 @@ const packageService = {
       return {
         success: true,
         data: normalized.data,
-        message: normalized.message || 'Feature created successfully'
+        message: normalized.message || 'Settings updated successfully'
       };
     } catch (error) {
       return {
@@ -255,10 +98,45 @@ const packageService = {
     }
   },
 
-  // Update feature
-  updateFeature: async (featureData) => {
+  /**
+   * Get email/SMTP settings
+   * @returns {Object} - { success, data, message }
+   */
+  getEmailSettings: async () => {
     try {
-      const response = await apiClient.post('/subscription-package-feature-update', featureData);
+      const response = await apiClient.get('/settings/email');
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Email settings loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
+    }
+  },
+
+  /**
+   * Update email/SMTP settings
+   * @param {Object} emailData
+   * @returns {Object} - { success, data, message }
+   */
+  updateEmailSettings: async (emailData) => {
+    try {
+      const response = await apiClient.post('/settings/email', emailData);
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -273,7 +151,7 @@ const packageService = {
       return {
         success: true,
         data: normalized.data,
-        message: normalized.message || 'Feature updated successfully'
+        message: normalized.message || 'Email settings updated successfully'
       };
     } catch (error) {
       return {
@@ -285,10 +163,146 @@ const packageService = {
     }
   },
 
-  // Toggle feature status
-  toggleFeatureStatus: async (id) => {
+  /**
+   * Get all payment gateways
+   * @returns {Object} - { success, data, message }
+   */
+  getPaymentGateways: async () => {
     try {
-      const response = await apiClient.post('/subscription-package-feature-status', { id });
+      const response = await apiClient.get('/settings/payment-gateways');
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data || [],
+        message: normalized.message || 'Payment gateways loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
+    }
+  },
+
+  /**
+   * Get payment gateway by ID
+   * @param {Number|String} id
+   * @returns {Object} - { success, data, message }
+   */
+  getPaymentGatewayById: async (id) => {
+    try {
+      const response = await apiClient.get(`/settings/payment-gateways/${id}`);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Payment gateway loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
+    }
+  },
+
+  /**
+   * Create payment gateway
+   * @param {Object} gatewayData
+   * @returns {Object} - { success, data, message }
+   */
+  createPaymentGateway: async (gatewayData) => {
+    try {
+      const response = await apiClient.post('/settings/payment-gateways', gatewayData);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Payment gateway created successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: getValidationErrors(error)
+      };
+    }
+  },
+
+  /**
+   * Update payment gateway
+   * @param {Number|String} id
+   * @param {Object} gatewayData
+   * @returns {Object} - { success, data, message }
+   */
+  updatePaymentGateway: async (id, gatewayData) => {
+    try {
+      const response = await apiClient.post(`/settings/payment-gateways/${id}`, gatewayData);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Payment gateway updated successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: getValidationErrors(error)
+      };
+    }
+  },
+
+  /**
+   * Delete payment gateway
+   * @param {Number|String} id
+   * @returns {Object} - { success, message }
+   */
+  deletePaymentGateway: async (id) => {
+    try {
+      const response = await apiClient.delete(`/settings/payment-gateways/${id}`);
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -300,7 +314,7 @@ const packageService = {
 
       return {
         success: true,
-        message: normalized.message || 'Feature status updated successfully'
+        message: normalized.message || 'Payment gateway deleted successfully'
       };
     } catch (error) {
       return {
@@ -310,10 +324,14 @@ const packageService = {
     }
   },
 
-  // Delete feature
-  deleteFeature: async (id) => {
+  /**
+   * Toggle payment gateway status
+   * @param {Number|String} id
+   * @returns {Object} - { success, message }
+   */
+  togglePaymentGatewayStatus: async (id) => {
     try {
-      const response = await apiClient.post('/subscription-package-feature-delete', { id });
+      const response = await apiClient.post(`/settings/payment-gateways/${id}/toggle-status`);
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -325,7 +343,7 @@ const packageService = {
 
       return {
         success: true,
-        message: normalized.message || 'Feature deleted successfully'
+        message: normalized.message || 'Payment gateway status updated successfully'
       };
     } catch (error) {
       return {
@@ -333,7 +351,7 @@ const packageService = {
         message: extractErrorMessage(error)
       };
     }
-  },
+  }
 };
 
-export default packageService;
+export default settingsService;

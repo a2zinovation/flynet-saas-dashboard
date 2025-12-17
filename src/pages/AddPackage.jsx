@@ -1,5 +1,5 @@
 // src/pages/AddPackage.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,13 +13,13 @@ import {
   InputAdornment,
   Checkbox,
   FormControlLabel,
-  Radio,
-  RadioGroup,
   FormControl,
   Select,
+  InputLabel,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import packageService from "../services/packageService";
+import settingsService from "../services/settingsService";
 
 export default function AddPackage() {
   const navigate = useNavigate();
@@ -34,6 +34,7 @@ export default function AddPackage() {
     max_cameras: "",
     max_locations: "",
     max_users: "",
+    payment_gateway_id: "",
     analytics_enabled: false,
     api_access_enabled: false,
     recording_enabled: true,
@@ -42,6 +43,21 @@ export default function AddPackage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [paymentGateways, setPaymentGateways] = useState([]);
+
+  // Fetch payment gateways on mount
+  useEffect(() => {
+    fetchPaymentGateways();
+  }, []);
+
+  const fetchPaymentGateways = async () => {
+    const result = await settingsService.getPaymentGateways();
+    if (result.success) {
+      // Filter only active gateways
+      const activeGateways = result.data.filter(gw => gw.is_active);
+      setPaymentGateways(activeGateways);
+    }
+  };
 
   const handle = (e) => {
     const { name, value } = e.target;
@@ -53,7 +69,7 @@ export default function AddPackage() {
     setForm({ ...form, [name]: checked });
   };
 
-  const handleFreePackage = (e) => {
+  const handlePackageTypeChange = (e) => {
     const isFree = e.target.value === "free";
     setForm({ ...form, is_free: isFree, price: isFree ? "0" : form.price });
   };
@@ -69,12 +85,13 @@ export default function AddPackage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price) || 0,
-      duration_type: form.price_interval === "monthly" ? "month" : "year",
+      price_interval: form.price_interval,
       interval: parseInt(form.interval) || 1,
       trial_days: parseInt(form.trial_days) || 0,
       max_cameras: parseInt(form.max_cameras) || 0,
       max_locations: parseInt(form.max_locations) || 0,
       max_users: parseInt(form.max_users) || 0,
+      payment_gateway_id: form.payment_gateway_id || null,
       analytics_enabled: form.analytics_enabled ? 1 : 0,
       api_access_enabled: form.api_access_enabled ? 1 : 0,
       recording_enabled: form.recording_enabled ? 1 : 0,
@@ -146,7 +163,7 @@ export default function AddPackage() {
                 disabled={loading}
               />
 
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Number of Locations:
               </Typography>
               <TextField
@@ -159,7 +176,7 @@ export default function AddPackage() {
                 placeholder="0 = infinite"
                 disabled={loading}
                 inputProps={{ min: 0 }}
-              />
+              /> */}
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Number of Cameras:
@@ -204,6 +221,32 @@ export default function AddPackage() {
                 disabled={loading}
                 inputProps={{ min: 0 }}
               />
+
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Payment Gateway:
+              </Typography>
+              <FormControl fullWidth size="small" disabled={loading || form.is_free}>
+                <Select
+                  name="payment_gateway_id"
+                  value={form.payment_gateway_id}
+                  onChange={handle}
+                  displayEmpty
+                >
+                  <MenuItem value="">
+                    <em>Select Payment Gateway</em>
+                  </MenuItem>
+                  {paymentGateways.map((gateway) => (
+                    <MenuItem key={gateway.id} value={gateway.id}>
+                      {gateway.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {paymentGateways.length === 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  No active payment gateways. Configure in Settings.
+                </Typography>
+              )} */}
             </Grid>
 
             {/* RIGHT COLUMN */}
@@ -252,6 +295,20 @@ export default function AddPackage() {
               />
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Package Type:
+              </Typography>
+              <FormControl fullWidth size="small" disabled={loading}>
+                <Select
+                  name="package_type"
+                  value={form.is_free ? "free" : "paid"}
+                  onChange={handlePackageTypeChange}
+                >
+                  <MenuItem value="paid">Paid Package</MenuItem>
+                  <MenuItem value="free">Free Package</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Price:
               </Typography>
               <TextField
@@ -272,19 +329,11 @@ export default function AddPackage() {
                 }}
                 inputProps={{ min: 0, step: "0.01" }}
               />
-
-              {/* Free package toggle */}
-              <RadioGroup 
-                value={form.is_free ? "free" : "paid"} 
-                onChange={handleFreePackage}
-                sx={{ mt: 1 }}
-              >
-                <FormControlLabel
-                  value="free"
-                  control={<Radio disabled={loading} />}
-                  label="Free Package"
-                />
-              </RadioGroup>
+              {form.is_free && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Price is disabled for free packages
+                </Typography>
+              )}
             </Grid>
 
             {/* FEATURE TOGGLES - Full Width */}

@@ -13,13 +13,12 @@ import {
   InputAdornment,
   Checkbox,
   FormControlLabel,
-  Radio,
-  RadioGroup,
   FormControl,
   Select,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import packageService from "../services/packageService";
+import settingsService from "../services/settingsService";
 
 export default function EditPackage() {
   const navigate = useNavigate();
@@ -37,6 +36,7 @@ export default function EditPackage() {
     max_cameras: "",
     max_locations: "",
     max_users: "",
+    payment_gateway_id: "",
     analytics_enabled: false,
     api_access_enabled: false,
     recording_enabled: true,
@@ -46,10 +46,20 @@ export default function EditPackage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [paymentGateways, setPaymentGateways] = useState([]);
 
   useEffect(() => {
     fetchPackage();
+    fetchPaymentGateways();
   }, [id]);
+
+  const fetchPaymentGateways = async () => {
+    const result = await settingsService.getPaymentGateways();
+    if (result.success) {
+      const activeGateways = result.data.filter(gw => gw.is_active);
+      setPaymentGateways(activeGateways);
+    }
+  };
 
   const fetchPackage = async () => {
     setLoading(true);
@@ -59,7 +69,7 @@ export default function EditPackage() {
       const pkg = result.data;
       const priceValue = parseFloat(pkg.price) || 0;
       const isFree = priceValue === 0;
-      const priceInterval = pkg.duration_type === "year" ? "yearly" : "monthly";
+      const priceInterval = pkg.price_interval;
       
       setForm({
         id: pkg.id,
@@ -73,6 +83,7 @@ export default function EditPackage() {
         max_cameras: pkg.max_cameras || "",
         max_locations: pkg.max_locations || "",
         max_users: pkg.max_users || "",
+        payment_gateway_id: pkg.payment_gateway_id || "",
         analytics_enabled: pkg.analytics_enabled === 1 || pkg.analytics_enabled === true,
         api_access_enabled: pkg.api_access_enabled === 1 || pkg.api_access_enabled === true,
         recording_enabled: pkg.recording_enabled === 1 || pkg.recording_enabled === true,
@@ -94,7 +105,7 @@ export default function EditPackage() {
     setForm({ ...form, [name]: checked });
   };
 
-  const handleFreePackage = (e) => {
+  const handlePackageTypeChange = (e) => {
     const isFree = e.target.value === "free";
     setForm({ ...form, is_free: isFree, price: isFree ? "0" : form.price });
   };
@@ -111,12 +122,13 @@ export default function EditPackage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price) || 0,
-      duration_type: form.price_interval === "monthly" ? "month" : "year",
+      price_interval: form.price_interval,
       interval: parseInt(form.interval) || 1,
       trial_days: parseInt(form.trial_days) || 0,
       max_cameras: parseInt(form.max_cameras) || 0,
       max_locations: parseInt(form.max_locations) || 0,
       max_users: parseInt(form.max_users) || 0,
+      payment_gateway_id: form.payment_gateway_id || null,
       analytics_enabled: form.analytics_enabled ? 1 : 0,
       api_access_enabled: form.api_access_enabled ? 1 : 0,
       recording_enabled: form.recording_enabled ? 1 : 0,
@@ -196,7 +208,7 @@ export default function EditPackage() {
                 disabled={saving}
               />
 
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Number of Locations:
               </Typography>
               <TextField
@@ -209,7 +221,7 @@ export default function EditPackage() {
                 placeholder="0 = infinite"
                 disabled={saving}
                 inputProps={{ min: 0 }}
-              />
+              /> */}
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Number of Cameras:
@@ -254,6 +266,32 @@ export default function EditPackage() {
                 disabled={saving}
                 inputProps={{ min: 0 }}
               />
+
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Payment Gateway:
+              </Typography>
+              <FormControl fullWidth size="small" disabled={saving || form.is_free}>
+                <Select
+                  name="payment_gateway_id"
+                  value={form.payment_gateway_id}
+                  onChange={handle}
+                  displayEmpty
+                >
+                  <MenuItem value="">
+                    <em>Select Payment Gateway</em>
+                  </MenuItem>
+                  {paymentGateways.map((gateway) => (
+                    <MenuItem key={gateway.id} value={gateway.id}>
+                      {gateway.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              {paymentGateways.length === 0 && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  No active payment gateways. Configure in Settings.
+                </Typography>
+              )} */}
             </Grid>
 
             {/* RIGHT COLUMN */}
@@ -302,6 +340,20 @@ export default function EditPackage() {
               />
 
               <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+                Package Type:
+              </Typography>
+              <FormControl fullWidth size="small" disabled={saving}>
+                <Select
+                  name="package_type"
+                  value={form.is_free ? "free" : "paid"}
+                  onChange={handlePackageTypeChange}
+                >
+                  <MenuItem value="paid">Paid Package</MenuItem>
+                  <MenuItem value="free">Free Package</MenuItem>
+                </Select>
+              </FormControl>
+
+              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Price:
               </Typography>
               <TextField
@@ -322,19 +374,11 @@ export default function EditPackage() {
                 }}
                 inputProps={{ min: 0, step: "0.01" }}
               />
-
-              {/* Free package toggle */}
-              <RadioGroup 
-                value={form.is_free ? "free" : "paid"} 
-                onChange={handleFreePackage}
-                sx={{ mt: 1 }}
-              >
-                <FormControlLabel
-                  value="free"
-                  control={<Radio disabled={saving} />}
-                  label="Free Package"
-                />
-              </RadioGroup>
+              {form.is_free && (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  Price is disabled for free packages
+                </Typography>
+              )}
             </Grid>
 
             {/* FEATURE TOGGLES - Full Width */}

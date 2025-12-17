@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api.pinkdreams.store/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_WWW_BASE_URL || 'http://api.pinkdreams.store/api';
 
 // Create axios instance
 const apiClient = axios.create({

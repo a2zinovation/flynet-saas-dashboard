@@ -1,55 +1,70 @@
 // src/layouts/MainLayout.jsx
 import React, { useState } from "react";
-import { Box, CssBaseline } from "@mui/material";
+import { Box, CssBaseline, useMediaQuery } from "@mui/material";
 import { Outlet } from "react-router-dom";
 import Header from "../components/layout/Header.jsx";
 import Sidebar from "../components/layout/Sidebar.jsx";
 
 const SIDEBAR_WIDTH = 240;
-const SIDEBAR_COLLAPSED_WIDTH = 72; // icons-only width
+const SIDEBAR_COLLAPSED_WIDTH = 72;
 
 export default function MainLayout() {
-  // controls mobile drawer (for xs screens)
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const handleDrawerToggle = () => setMobileOpen((s) => !s);
+  const isTablet = useMediaQuery("(max-width:900px)");
+  const isMobile = useMediaQuery("(max-width:600px)");
 
-  // controls collapsed (desktop) state
+  // MOBILE drawer state
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+
+  // DESKTOP collapse state
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const effectiveSidebarWidth = isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+  // 🔥 Auto-collapse on tablets but not phones
+  const effectiveCollapsed = isMobile ? true : isTablet ? true : isCollapsed;
+
+  const effectiveSidebarWidth = effectiveCollapsed
+    ? SIDEBAR_COLLAPSED_WIDTH
+    : SIDEBAR_WIDTH;
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
       <CssBaseline />
 
-      {/* Sidebar — receives mobile + collapsed controls */}
+      {/* SIDEBAR */}
       <Sidebar
         mobileOpen={mobileOpen}
         handleDrawerToggle={handleDrawerToggle}
-        isCollapsed={isCollapsed}
+        isCollapsed={effectiveCollapsed}
         setIsCollapsed={setIsCollapsed}
         drawerWidth={SIDEBAR_WIDTH}
         collapsedWidth={SIDEBAR_COLLAPSED_WIDTH}
       />
 
-      {/* Main area — leave room for sidebar using effective width */}
+      {/* RIGHT AREA */}
       <Box
         sx={{
           flexGrow: 1,
-          // keep header visible; shift main content to the right by sidebar width
-          ml: `${effectiveSidebarWidth}px`,
+          ml: { xs: 0, sm: `${effectiveSidebarWidth}px` },
+          transition: "margin 0.2s ease",
           display: "flex",
           flexDirection: "column",
-          transition: "margin 0.18s ease",
           minHeight: "100vh",
-          bgcolor: "transparent",
         }}
       >
-        {/* Header receives the mobile drawer toggle so hamburger still works on xs */}
-        <Header drawerWidth={effectiveSidebarWidth} handleDrawerToggle={handleDrawerToggle} />
+        <Header
+          drawerWidth={effectiveSidebarWidth}
+          handleDrawerToggle={handleDrawerToggle}
+        />
 
-        {/* Page Content */}
-        <Box component="main" sx={{ p: 3, pt: "84px", minHeight: "calc(100vh - 84px)" }}>
+        {/* PAGE CONTENT */}
+        <Box
+          component="main"
+          sx={{
+            p: 3,
+            pt: "84px",
+            minHeight: "calc(100vh - 84px)",
+          }}
+        >
           <Outlet />
         </Box>
       </Box>

@@ -14,6 +14,7 @@ import {
   Stack,
   Divider,
   useTheme,
+  Avatar,
 } from "@mui/material";
 
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -180,17 +181,45 @@ const Header = ({ drawerWidth }) => {
 
             {/* Notifications */}
             <IconButton onClick={() => navigate("/notification-center")}>
-              <Badge badgeContent={unreadCount} color="error" max={99}>
+              <Badge
+                badgeContent={
+                  typeof unreadCount === 'number'
+                    ? unreadCount
+                    : (unreadCount && typeof unreadCount.count === 'number' ? unreadCount.count : 0)
+                }
+                color="error"
+                max={99}
+              >
                 <NotificationsIcon />
               </Badge>
             </IconButton>
 
-            {/* Profile Icon */}
-            <IconButton onClick={handleProfileMenuOpen}>
-              <AccountCircle />
-            </IconButton>
+                  <IconButton onClick={handleProfileMenuOpen} sx={{ p: 0.5 }}>
+                    {(() => {
+                    const picUrl = user?.profile_picture_url || user?.profile_picture;
+                    // If picUrl is absent, render icon. If it's a relative path (like "profiles/xxx.jpg"),
+                    // build a full URL pointing to /storage/<path>. Allow override via env var.
+                    const apiBase = import.meta.env.VITE_BASE_URL || "http://127.0.0.1:8000";
+                    const imageUrl =
+                      picUrl && (picUrl.startsWith("http") || picUrl.startsWith("https"))
+                      ? picUrl
+                      : picUrl
+                      ? `${apiBase}/storage/${String(picUrl).replace(/^\/+/, "")}`
+                      : null;
 
-            {/* Red Logout Button */}
+                    return imageUrl ? (
+                      <Avatar
+                      src={imageUrl}
+                      alt={user?.name || "User"}
+                      sx={{ width: 36, height: 36 }}
+                      />
+                    ) : (
+                      <AccountCircle sx={{ fontSize: 36 }} />
+                    );
+                    })()}
+                  </IconButton>
+
+                  {/* Red Logout Button */}
             <IconButton
               onClick={logout}
               sx={{
