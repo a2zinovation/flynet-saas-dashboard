@@ -61,8 +61,8 @@ export default function MainLayout() {
           component="main"
           sx={{
             p: { xs: 2, sm: 3 },
-            pt: "84px",
-            minHeight: "calc(100vh - 84px)",
+            mt: "5rem",
+            minHeight: "calc(100vh - 5rem)",
           }}
         >
           <Outlet />

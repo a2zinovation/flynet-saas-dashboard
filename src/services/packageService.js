@@ -334,6 +334,59 @@ const packageService = {
       };
     }
   },
+
+  // Get deleted packages (soft deleted)
+  getDeleted: async () => {
+    try {
+      const response = await apiClient.get('/subscription-package-deleted');
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data || [],
+        message: normalized.message || 'Deleted packages loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
+    }
+  },
+
+  // Restore package
+  restore: async (id) => {
+    try {
+      const response = await apiClient.post('/subscription-package-restore', { id });
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response)
+        };
+      }
+
+      return {
+        success: true,
+        message: normalized.message || 'Package restored successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error)
+      };
+    }
+  },
 };
 
 export default packageService;

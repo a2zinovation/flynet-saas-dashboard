@@ -19,12 +19,10 @@ import {
   IconButton,
 } from "@mui/material";
 
-import BusinessIcon from "@mui/icons-material/Business";
 import EmailIcon from "@mui/icons-material/Email";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import PinDropIcon from "@mui/icons-material/PinDrop";
-import PublicIcon from "@mui/icons-material/Public";
 import NumbersIcon from "@mui/icons-material/Numbers";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PhoneIphoneIcon from "@mui/icons-material/PhoneIphone";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import DeleteIcon from "@mui/icons-material/Delete";
 import settingsService from "../services/settingsService";
@@ -36,17 +34,13 @@ export default function Settings() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Super Admin Settings State
+  // Super Admin Settings State (business-agnostic)
   const [superAdminSettings, setSuperAdminSettings] = useState({
-    business_name: "",
     email: "",
-    landmark: "",
-    zip_code: "",
-    state: "",
-    city: "",
-    country: "",
+    name: "",
+    prefix: "",
+    alternate_phone: "",
     min_subscription_expiry_alert_days: "",
-    enable_business_based_username: false,
   });
 
   // Email Settings State
@@ -69,6 +63,9 @@ export default function Settings() {
   const [gateways, setGateways] = useState([]);
   const [editingGateway, setEditingGateway] = useState(null);
 
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState({});
+
   // Fetch data on tab change
   useEffect(() => {
     if (tab === "super-admin") {
@@ -86,7 +83,13 @@ export default function Settings() {
     const result = await settingsService.getSuperAdminSettings();
     
     if (result.success && result.data) {
-      setSuperAdminSettings(result.data);
+      setSuperAdminSettings({
+        email: result.data.email || "",
+        name: result.data.name || "",
+        prefix: result.data.prefix || "",
+        alternate_phone: result.data.alternate_phone || "",
+        min_subscription_expiry_alert_days: result.data.min_subscription_expiry_alert_days ?? "",
+      });
     } else {
       setError(result.message || "Failed to load settings");
     }
@@ -139,14 +142,31 @@ export default function Settings() {
     setSaving(true);
     setError("");
     setSuccess("");
+    setValidationErrors({});
     
+    // Client-side validation
+    const validationErrors = validateEmailSettings();
+    if (Object.keys(validationErrors).length > 0) {
+      setValidationErrors(validationErrors);
+      setError("Please fix the validation errors below");
+      setSaving(false);
+      return;
+    }
+
     const result = await settingsService.updateEmailSettings(emailSettings);
     
     if (result.success) {
       setSuccess("Email settings saved successfully!");
+      setValidationErrors({});
       setTimeout(() => setSuccess(""), 3000);
     } else {
-      setError(result.message || "Failed to save email settings");
+      // Check if there are validation errors
+      if (result.validationErrors && typeof result.validationErrors === 'object') {
+        setValidationErrors(result.validationErrors);
+        setError("Please fix the validation errors below");
+      } else {
+        setError(result.message || "Failed to save email settings");
+      }
     }
     setSaving(false);
   };
@@ -193,6 +213,38 @@ export default function Settings() {
     setSaving(false);
   };
 
+  // Email settings validation
+  const validateEmailSettings = () => {
+    const errors = {};
+
+    // mail_driver: required, must be one of smtp, sendgrid, mailgun
+    if (!emailSettings.mail_driver) {
+      errors.mail_driver = ["Mail driver is required"];
+    } else if (!["smtp", "sendgrid", "mailgun"].includes(emailSettings.mail_driver)) {
+      errors.mail_driver = ["Mail driver must be one of: smtp, sendgrid, mailgun"];
+    }
+
+    // mail_port: optional, must be integer
+    if (emailSettings.mail_port && isNaN(parseInt(emailSettings.mail_port))) {
+      errors.mail_port = ["Port must be a valid integer"];
+    }
+
+    // mail_encryption: optional, must be ssl or tls
+    if (emailSettings.mail_encryption && !["ssl", "tls"].includes(emailSettings.mail_encryption)) {
+      errors.mail_encryption = ["Encryption must be either ssl or tls"];
+    }
+
+    // mail_from_address: optional, must be valid email if provided
+    if (emailSettings.mail_from_address) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailSettings.mail_from_address)) {
+        errors.mail_from_address = ["From address must be a valid email"];
+      }
+    }
+
+    return errors;
+  };
+
   return (
     <Box sx={{ p: 2, height: "100%", overflowY: "auto" }}>
       {/* PAGE TITLE */}
@@ -216,22 +268,56 @@ export default function Settings() {
         </Alert>
       )}
 
+      {/* MOBILE TABS */}
+      <Stack 
+        direction="row" 
+        spacing={1} 
+        sx={{ 
+          mb: 2,
+          display: { xs: "flex", md: "none" },
+          overflowX: "auto",
+          pb: 1
+        }}
+      >
+        {[
+          { id: "super-admin", label: "Super Admin" },
+          { id: "email", label: "Email/SMTP" },
+          { id: "payment", label: "Payment" },
+        ].map((item) => (
+          <Button
+            key={item.id}
+            onClick={() => setTab(item.id)}
+            variant={tab === item.id ? "contained" : "outlined"}
+            size="small"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              minWidth: "auto",
+            }}
+          >
+            {item.label}
+          </Button>
+        ))}
+      </Stack>
+
       <Paper
         elevation={0}
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", md: "row" },
           borderRadius: 2,
           border: "1px solid #E8EDF2",
           p: 0,
           minHeight: "80vh",
         }}
       >
-        {/* LEFT TABS */}
+        {/* LEFT TABS - DESKTOP ONLY */}
         <Box
           sx={{
-            width: 200,
-            borderRight: "1px solid #E8EDF2",
-            display: "flex",
+            width: { md: 200 },
+            borderRight: { md: "1px solid #E8EDF2" },
+            display: { xs: "none", md: "flex" },
             flexDirection: "column",
           }}
         >
@@ -260,8 +346,8 @@ export default function Settings() {
         </Box>
 
         {/* RIGHT CONTENT */}
-        <Box sx={{ flexGrow: 1, p: 3 }}>
-          {/* SUPER ADMIN SETTINGS TAB */}
+        <Box sx={{ flexGrow: 1, p: { xs: 2, md: 3 } }}>
+          {/* SUPER ADMIN SETTINGS TAB (business-agnostic) */}
           {tab === "super-admin" && (
             <Box>
               {loading ? (
@@ -270,24 +356,50 @@ export default function Settings() {
                 </Box>
               ) : (
                 <Stack spacing={3}>
-                  <Stack direction="row" spacing={3}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
                     <TextField
-                      label="Business Name"
+                      label="Full Name"
                       fullWidth
-                      value={superAdminSettings.business_name}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, business_name: e.target.value })}
+                      value={superAdminSettings.name}
+                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, name: e.target.value })}
                       disabled={saving}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <BusinessIcon />
+                            <AccountCircleIcon />
                           </InputAdornment>
                         ),
                       }}
                     />
 
                     <TextField
-                      label="Email"
+                      label="Prefix"
+                      fullWidth
+                      value={superAdminSettings.prefix}
+                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, prefix: e.target.value })}
+                      disabled={saving}
+                    />
+
+                    <TextField
+                      label="Alternate Phone"
+                      fullWidth
+                      type="tel"
+                      value={superAdminSettings.alternate_phone}
+                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, alternate_phone: e.target.value })}
+                      disabled={saving}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <PhoneIphoneIcon />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Stack>
+
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={3}>
+                    <TextField
+                      label="Admin Email"
                       fullWidth
                       value={superAdminSettings.email}
                       onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, email: e.target.value })}
@@ -296,85 +408,6 @@ export default function Settings() {
                         startAdornment: (
                           <InputAdornment position="start">
                             <EmailIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Stack>
-
-                  <Stack direction="row" spacing={3}>
-                    <TextField
-                      label="Landmark"
-                      fullWidth
-                      value={superAdminSettings.landmark}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, landmark: e.target.value })}
-                      disabled={saving}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LocationOnIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <TextField
-                      label="Zip Code"
-                      fullWidth
-                      value={superAdminSettings.zip_code}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, zip_code: e.target.value })}
-                      disabled={saving}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PinDropIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <TextField
-                      label="State"
-                      fullWidth
-                      value={superAdminSettings.state}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, state: e.target.value })}
-                      disabled={saving}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PublicIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Stack>
-
-                  <Stack direction="row" spacing={3}>
-                    <TextField
-                      label="City"
-                      fullWidth
-                      value={superAdminSettings.city}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, city: e.target.value })}
-                      disabled={saving}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <LocationOnIcon />
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-
-                    <TextField
-                      label="Country"
-                      fullWidth
-                      value={superAdminSettings.country}
-                      onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, country: e.target.value })}
-                      disabled={saving}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <PublicIcon />
                           </InputAdornment>
                         ),
                       }}
@@ -396,22 +429,6 @@ export default function Settings() {
                       }}
                     />
                   </Stack>
-
-                  <FormControlLabel
-                    control={
-                      <Checkbox 
-                        checked={superAdminSettings.enable_business_based_username}
-                        onChange={(e) => setSuperAdminSettings({ ...superAdminSettings, enable_business_based_username: e.target.checked })}
-                        disabled={saving}
-                      />
-                    }
-                    label="Enable business based username"
-                  />
-
-                  <Typography variant="body2" color="text.secondary">
-                    If enabled, business ID will be suffixed to username.
-                    This only applies to newly created users.
-                  </Typography>
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
                     <Button
@@ -443,7 +460,7 @@ export default function Settings() {
               ) : (
                 <Stack spacing={3}>
                   <Stack direction="row" spacing={3}>
-                    <FormControl fullWidth>
+                    <FormControl fullWidth error={!!validationErrors.mail_driver}>
                       <Typography variant="caption">Mail Driver</Typography>
                       <Select 
                         value={emailSettings.mail_driver} 
@@ -455,6 +472,11 @@ export default function Settings() {
                         <MenuItem value="sendgrid">SendGrid</MenuItem>
                         <MenuItem value="mailgun">Mailgun</MenuItem>
                       </Select>
+                      {validationErrors.mail_driver && (
+                        <Typography variant="caption" sx={{ color: "#d32f2f", mt: 0.5, display: "block" }}>
+                          {validationErrors.mail_driver[0]}
+                        </Typography>
+                      )}
                     </FormControl>
 
                     <TextField 
@@ -463,6 +485,8 @@ export default function Settings() {
                       value={emailSettings.mail_host}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_host: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_host}
+                      helperText={validationErrors.mail_host?.[0] || ""}
                     />
                     <TextField 
                       label="Port" 
@@ -470,6 +494,8 @@ export default function Settings() {
                       value={emailSettings.mail_port}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_port: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_port}
+                      helperText={validationErrors.mail_port?.[0] || ""}
                     />
                   </Stack>
 
@@ -480,6 +506,8 @@ export default function Settings() {
                       value={emailSettings.mail_username}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_username: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_username}
+                      helperText={validationErrors.mail_username?.[0] || ""}
                     />
                     <TextField 
                       label="Password" 
@@ -488,6 +516,8 @@ export default function Settings() {
                       value={emailSettings.mail_password}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_password: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_password}
+                      helperText={validationErrors.mail_password?.[0] || ""}
                     />
                     <TextField 
                       label="Encryption (tls / ssl)" 
@@ -495,6 +525,8 @@ export default function Settings() {
                       value={emailSettings.mail_encryption}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_encryption: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_encryption}
+                      helperText={validationErrors.mail_encryption?.[0] || ""}
                     />
                   </Stack>
 
@@ -505,6 +537,8 @@ export default function Settings() {
                       value={emailSettings.mail_from_address}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_from_address: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_from_address}
+                      helperText={validationErrors.mail_from_address?.[0] || ""}
                     />
                     <TextField 
                       label="From Name" 
@@ -512,6 +546,8 @@ export default function Settings() {
                       value={emailSettings.mail_from_name}
                       onChange={(e) => setEmailSettings({ ...emailSettings, mail_from_name: e.target.value })}
                       disabled={saving}
+                      error={!!validationErrors.mail_from_name}
+                      helperText={validationErrors.mail_from_name?.[0] || ""}
                     />
                   </Stack>
 
@@ -565,6 +601,8 @@ export default function Settings() {
                     value={emailSettings.welcome_email_subject}
                     onChange={(e) => setEmailSettings({ ...emailSettings, welcome_email_subject: e.target.value })}
                     disabled={saving}
+                    error={!!validationErrors.welcome_email_subject}
+                    helperText={validationErrors.welcome_email_subject?.[0] || ""}
                   />
 
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>

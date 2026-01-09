@@ -192,6 +192,13 @@ export default function Communicator() {
     return colors[type] || 'default';
   };
 
+  const stripHtml = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
   return (
     <Box>
       {/* ---- PAGE HEADER ---- */}
@@ -423,8 +430,9 @@ export default function Communicator() {
                         WebkitBoxOrient: 'vertical',
                         overflow: 'hidden',
                       }}
-                      dangerouslySetInnerHTML={{ __html: msg.message }}
-                    />
+                    >
+                      {stripHtml(msg.message)}
+                    </Typography>
                     
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Typography variant="caption" color="text.secondary">
@@ -451,7 +459,7 @@ export default function Communicator() {
                         <VisibilityIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    {/* <Tooltip title="Delete">
                       <IconButton 
                         size="small" 
                         onClick={() => handleDeleteMessage(msg.id)}
@@ -459,7 +467,7 @@ export default function Communicator() {
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
-                    </Tooltip>
+                    </Tooltip> */}
                   </Stack>
                 </Stack>
               </Box>
@@ -524,8 +532,45 @@ export default function Communicator() {
           <Box 
             dangerouslySetInnerHTML={{ __html: viewDialog.message?.message || '' }}
             sx={{ 
-              '& p': { mb: 1 },
-              '& ul, & ol': { pl: 3 }
+              '& p': { mb: 1.5, lineHeight: 1.6 },
+              '& ul, & ol': { pl: 3, mb: 1.5 },
+              '& li': { mb: 0.5 },
+              '& h1, & h2, & h3, & h4, & h5, & h6': { 
+                fontWeight: 600, 
+                mb: 1.5, 
+                mt: 2 
+              },
+              '& strong': { fontWeight: 600 },
+              '& em': { fontStyle: 'italic' },
+              '& u': { textDecoration: 'underline' },
+              '& blockquote': { 
+                borderLeft: '3px solid #e0e0e0',
+                pl: 2,
+                ml: 0,
+                fontStyle: 'italic',
+                color: 'text.secondary'
+              },
+              '& code': {
+                backgroundColor: '#f5f5f5',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '0.9em',
+                fontFamily: 'monospace'
+              },
+              '& pre': {
+                backgroundColor: '#f5f5f5',
+                padding: 2,
+                borderRadius: 1,
+                overflow: 'auto',
+                mb: 1.5
+              },
+              '& a': {
+                color: 'primary.main',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline'
+                }
+              }
             }}
           />
         </DialogContent>

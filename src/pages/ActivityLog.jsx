@@ -12,6 +12,7 @@ import {
   MenuItem,
   FormControl,
   Table,
+  TableContainer,
   TableHead,
   TableRow,
   TableCell,
@@ -37,6 +38,7 @@ import reportService from "../services/reportService";
 
 export default function Reports() {
   const [entries, setEntries] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [reports, setReports] = useState([]);
@@ -59,119 +61,124 @@ export default function Reports() {
     date_to: "",
   });
   const [allReports, setAllReports] = useState([]);
+  const [appliedFilters, setAppliedFilters] = useState({
+    category: "",
+    action: "",
+    date_from: "",
+    date_to: "",
+  });
 
+  // Fetch reports when page, entries, or applied filters change
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [currentPage, entries, appliedFilters.category, appliedFilters.action, appliedFilters.date_from, appliedFilters.date_to, appliedFilters.search]);
 
   const fetchReports = async () => {
     setLoading(true);
     setError("");
     
-    const result = await reportService.getAll();
+    // Build query parameters for server-side pagination and filtering
+    const params = {
+      page: currentPage,
+      per_page: entries,
+    };
+
+    // Add search parameter
+    if (appliedFilters.search && appliedFilters.search.trim()) {
+      params.search = appliedFilters.search.trim();
+    }
+
+    // Add applied filters if present
+    if (appliedFilters.category) {
+      params.category = appliedFilters.category;
+    }
+    if (appliedFilters.action) {
+      params.action = appliedFilters.action;
+    }
+    if (appliedFilters.date_from) {
+      params.date_from = appliedFilters.date_from;
+    }
+    if (appliedFilters.date_to) {
+      params.date_to = appliedFilters.date_to;
+    }
+    
+    const result = await reportService.getAll(params);
     
     if (result.success) {
-      setAllReports(result.data || []);
+      // reportService returns { success, data, pagination, message }
+      const records = result.data || [];
+      setReports(records);
+      setAllReports(records);
+      
+      // Use pagination from service if available, otherwise calculate from response
+      if (result.pagination) {
+        // Backend provided pagination metadata
+        setPagination({
+          current_page: result.pagination.current_page || 1,
+          last_page: result.pagination.last_page || 1,
+          per_page: result.pagination.per_page || entries,
+          total: result.pagination.total || 0,
+          from: result.pagination.from || (records.length > 0 ? 1 : 0),
+          to: result.pagination.to || records.length,
+        });
+      } else if (Array.isArray(records)) {
+        // Fallback for non-paginated response
+        setPagination({
+          current_page: 1,
+          last_page: 1,
+          per_page: entries,
+          total: records.length,
+          from: records.length > 0 ? 1 : 0,
+          to: records.length,
+        });
+      }
     } else {
       setError(result.message || "Failed to load reports");
+      setReports([]);
+      setAllReports([]);
+      setPagination({
+        current_page: 1,
+        last_page: 1,
+        per_page: entries,
+        total: 0,
+        from: 0,
+        to: 0,
+      });
     }
     setLoading(false);
   };
 
-  // Extract unique categories and actions from reports data
+  // Extract unique categories and actions from current page data
   const filterOptions = React.useMemo(() => {
     const categories = [...new Set(allReports.map(r => r.category).filter(Boolean))];
     const actions = [...new Set(allReports.map(r => r.action).filter(Boolean))];
     return { categories, actions };
   }, [allReports]);
 
-  // Client-side filtering
-  const filteredReports = React.useMemo(() => {
-    let filtered = [...allReports];
-
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(report => 
-        (report.user_name || report.user || "").toLowerCase().includes(searchLower) ||
-        (report.user_email || "").toLowerCase().includes(searchLower) ||
-        (report.action || "").toLowerCase().includes(searchLower) ||
-        (report.description || report.detail || report.details || "").toLowerCase().includes(searchLower) ||
-        (report.category || "").toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Category filter
-    if (filters.category) {
-      filtered = filtered.filter(report => report.category === filters.category);
-    }
-
-    // Action filter
-    if (filters.action) {
-      filtered = filtered.filter(report => report.action === filters.action);
-    }
-
-    // Date from filter
-    if (filters.date_from) {
-      const fromDate = new Date(filters.date_from);
-      filtered = filtered.filter(report => {
-        const reportDate = new Date(report.created_at || report.date);
-        return reportDate >= fromDate;
-      });
-    }
-
-    // Date to filter
-    if (filters.date_to) {
-      const toDate = new Date(filters.date_to);
-      toDate.setHours(23, 59, 59, 999); // End of day
-      filtered = filtered.filter(report => {
-        const reportDate = new Date(report.created_at || report.date);
-        return reportDate <= toDate;
-      });
-    }
-
-    return filtered;
-  }, [allReports, search, filters]);
-
-  // Pagination logic
-  const paginatedReports = React.useMemo(() => {
-    const startIndex = 0;
-    const endIndex = entries;
-    return filteredReports.slice(startIndex, endIndex);
-  }, [filteredReports, entries]);
-
-  // Update reports state for display
-  React.useEffect(() => {
-    setReports(paginatedReports);
-    setPagination({
-      current_page: 1,
-      last_page: 1,
-      per_page: entries,
-      total: filteredReports.length,
-      from: filteredReports.length > 0 ? 1 : 0,
-      to: Math.min(entries, filteredReports.length),
-    });
-  }, [paginatedReports, entries, filteredReports.length]);
-
-  const handleSearch = () => {
-    // Client-side filtering, no need to fetch
+  // Apply filters and trigger server-side fetch
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...filters });
+    setCurrentPage(1); // Reset to first page when applying filters
+    setFilterOpen(false);
   };
 
   const handleClearFilters = () => {
-    setSearch("");
-    setFilters({
+    const emptyFilters = {
       category: "",
       action: "",
       date_from: "",
       date_to: "",
-    });
+    };
+    setFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setCurrentPage(1); // Reset to first page when clearing filters
   };
 
   const handleExportCSV = () => {
     setExporting(true);
     try {
       const headers = ['Date & Time', 'User', 'Category', 'Action', 'Details', 'IP Address'];
-      const csvData = filteredReports.map(row => [
+      const csvData = reports.map(row => [
         formatDate(row.created_at || row.date),
         row.user_name || row.user || 'System',
         row.category || 'General',
@@ -210,7 +217,7 @@ export default function Reports() {
       });
       htmlTable += '</tr></thead><tbody>';
 
-      filteredReports.forEach(row => {
+      reports.forEach(row => {
         htmlTable += '<tr>';
         htmlTable += `<td>${formatDate(row.created_at || row.date)}</td>`;
         htmlTable += `<td>${row.user_name || row.user || 'System'}</td>`;
@@ -272,7 +279,7 @@ export default function Reports() {
               </tr>
             </thead>
             <tbody>
-              ${filteredReports.map(row => `
+              ${reports.map(row => `
                 <tr>
                   <td>${formatDate(row.created_at || row.date)}</td>
                   <td>${row.user_name || row.user || 'System'}</td>
@@ -285,7 +292,7 @@ export default function Reports() {
             </tbody>
           </table>
           <div class="timestamp">
-            Total Entries: ${filteredReports.length}
+            Total Entries: ${pagination.total} (Showing current page)
           </div>
         </body>
       </html>
@@ -301,7 +308,14 @@ export default function Reports() {
   };
 
   const handleEntriesChange = (e) => {
-    setEntries(Number(e.target.value));
+    const newEntries = Number(e.target.value);
+    setEntries(newEntries);
+    setCurrentPage(1); // Reset to first page and trigger refetch
+  };
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value); // This will trigger useEffect to fetch new page
+    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to top on page change
   };
 
   const formatDate = (dateString) => {
@@ -356,7 +370,7 @@ export default function Reports() {
       <Paper
         elevation={0}
         sx={{
-          p: 2,
+          p: { xs: 1, sm: 2 },
           borderRadius: 2,
           border: "1px solid #E8EDF2",
         }}
@@ -441,9 +455,19 @@ export default function Reports() {
           <TextField
             size="small"
             placeholder="Search reports..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            value={appliedFilters.search || ""}
+            onChange={(e) => {
+              const newFilters = { ...appliedFilters, search: e.target.value };
+              setAppliedFilters(newFilters);
+              if (e.target.value === "") {
+                setCurrentPage(1);
+              }
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                setCurrentPage(1);
+              }
+            }}
             disabled={loading}
             InputProps={{
               startAdornment: (
@@ -451,9 +475,12 @@ export default function Reports() {
                   <SearchIcon fontSize="small" />
                 </InputAdornment>
               ),
-              endAdornment: search && (
+              endAdornment: appliedFilters.search && (
                 <InputAdornment position="end">
-                  <IconButton size="small" onClick={handleClearFilters}>
+                  <IconButton size="small" onClick={() => {
+                    setAppliedFilters({ ...appliedFilters, search: "" });
+                    setCurrentPage(1);
+                  }}>
                     <ClearIcon fontSize="small" />
                   </IconButton>
                 </InputAdornment>
@@ -534,7 +561,7 @@ export default function Reports() {
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => setFilterOpen(false)}
+                onClick={handleApplyFilters}
                 disabled={loading}
                 sx={{ textTransform: "none" }}
               >
@@ -553,85 +580,201 @@ export default function Reports() {
           </Paper>
         )}
 
-        {/* LOADING STATE */}
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
             <CircularProgress />
           </Box>
         ) : (
           <>
-            {/* TABLE */}
-            <Box sx={{ overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
-              <Table size="small" sx={{ minWidth: 900 }}>
-                <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
-                  <TableRow>
-                    <TableCell sx={{ minWidth: 180, fontWeight: 600 }}>Date & Time</TableCell>
-                    <TableCell sx={{ minWidth: 120, fontWeight: 600 }}>User</TableCell>
-                    <TableCell sx={{ minWidth: 100, fontWeight: 600 }}>Category</TableCell>
-                    <TableCell sx={{ minWidth: 150, fontWeight: 600 }}>Action</TableCell>
-                    <TableCell sx={{ minWidth: 250, fontWeight: 600 }}>Details</TableCell>
-                    <TableCell sx={{ minWidth: 100, fontWeight: 600 }}>IP Address</TableCell>
-                  </TableRow>
-                </TableHead>
+            {/* Desktop Table View */}
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <TableContainer
+                sx={{
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  width: '100%',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'thin',
+                  touchAction: 'pan-x pan-y',
+                  '&::-webkit-scrollbar': {
+                    height: 10,
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: '#f1f1f1',
+                    borderRadius: 10,
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: '#a3a3a3',
+                    borderRadius: 10,
+                    '&:hover': {
+                      backgroundColor: '#7a7a7a',
+                    },
+                  },
+                }}
+              >
+                <Table size="small" sx={{ minWidth: 1000 }}>
+                  <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
+                    <TableRow>
+                      <TableCell sx={{ minWidth: 160, fontWeight: 600 }}>Date & Time</TableCell>
+                      <TableCell sx={{ minWidth: 120, fontWeight: 600 }}>User</TableCell>
+                      <TableCell sx={{ minWidth: 100, fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ minWidth: 130, fontWeight: 600 }}>Action</TableCell>
+                      <TableCell sx={{ minWidth: 200, fontWeight: 600 }}>Details</TableCell>
+                      <TableCell sx={{ minWidth: 100, fontWeight: 600 }}>IP Address</TableCell>
+                    </TableRow>
+                  </TableHead>
 
-                <TableBody>
-                  {reports.length > 0 ? (
-                    reports.map((row) => (
-                      <TableRow key={row.id} hover>
-                        <TableCell>{formatDate(row.created_at || row.date)}</TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
+                  <TableBody>
+                    {reports.length > 0 ? (
+                      reports.map((row) => (
+                        <TableRow key={row.id} hover>
+                          <TableCell>{formatDate(row.created_at || row.date)}</TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {row.user_name || row.user || "System"}
+                            </Typography>
+                            {row.user_email && (
+                              <Typography variant="caption" color="text.secondary">
+                                {row.user_email}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={row.category || "General"} 
+                              size="small" 
+                              color={getCategoryColor(row.category)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" fontWeight={500}>
+                              {row.action}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" color="text.secondary">
+                              {row.description || row.detail || row.details || "N/A"}
+                            </Typography>
+                            {row.model_type && (
+                              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                {row.model_type} #{row.model_id}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption" color="text.secondary">
+                              {row.ip_address || "N/A"}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                          <Typography color="text.secondary">
+                            No activity logs found
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Try adjusting your search or filters
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+
+            {/* Mobile Card View */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              {reports.length > 0 ? (
+                <Stack spacing={2}>
+                  {reports.map((row) => (
+                    <Paper
+                      key={row.id}
+                      elevation={0}
+                      sx={{
+                        p: 2,
+                        border: '1px solid #E8EDF2',
+                        borderRadius: 2,
+                        backgroundColor: '#FBFCFE',
+                      }}
+                    >
+                      {/* Header: User + Category */}
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="subtitle2" fontWeight={700}>
                             {row.user_name || row.user || "System"}
                           </Typography>
-                          {row.user_email && (
-                            <Typography variant="caption" color="text.secondary">
-                              {row.user_email}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={row.category || "General"} 
-                            size="small" 
-                            color={getCategoryColor(row.category)}
-                          />
-                        </TableCell>
-                        <TableCell>
+                          <Typography variant="caption" color="text.secondary">
+                            {formatDate(row.created_at || row.date)}
+                          </Typography>
+                        </Box>
+                        <Chip 
+                          label={row.category || "General"} 
+                          size="small" 
+                          color={getCategoryColor(row.category)}
+                          sx={{ flexShrink: 0, ml: 1 }}
+                        />
+                      </Stack>
+
+                      {/* Action */}
+                      {row.action && (
+                        <Box sx={{ mb: 1.5, pb: 1.5, borderBottom: '1px solid #E8EDF2' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Action
+                          </Typography>
                           <Typography variant="body2" fontWeight={500}>
                             {row.action}
                           </Typography>
-                        </TableCell>
-                        <TableCell>
+                        </Box>
+                      )}
+
+                      {/* Details */}
+                      {(row.description || row.detail || row.details) && (
+                        <Box sx={{ mb: 1.5 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                            Details
+                          </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {row.description || row.detail || row.details || "N/A"}
+                            {row.description || row.detail || row.details}
                           </Typography>
                           {row.model_type && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
                               {row.model_type} #{row.model_id}
                             </Typography>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="caption" color="text.secondary">
-                            {row.ip_address || "N/A"}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                        <Typography color="text.secondary">
-                          No activity logs found
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          Try adjusting your search or filters
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                        </Box>
+                      )}
+
+                      {/* Footer: Email + IP */}
+                      {(row.user_email || row.ip_address) && (
+                        <Stack spacing={0.5} sx={{ pt: 1, borderTop: '1px solid #E8EDF2', fontSize: '0.75rem' }}>
+                          {row.user_email && (
+                            <Typography variant="caption" color="text.secondary">
+                              <strong>Email:</strong> {row.user_email}
+                            </Typography>
+                          )}
+                          {row.ip_address && (
+                            <Typography variant="caption" color="text.secondary">
+                              <strong>IP:</strong> {row.ip_address}
+                            </Typography>
+                          )}
+                        </Stack>
+                      )}
+                    </Paper>
+                  ))}
+                </Stack>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <Typography color="text.secondary">
+                    No activity logs found
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Try adjusting your search or filters
+                  </Typography>
+                </Box>
+              )}
             </Box>
 
             {/* FOOTER - Pagination */}
@@ -645,12 +788,24 @@ export default function Reports() {
               sx={{ mt: 2 }}
             >
               <Typography variant="body2" color="text.secondary">
-                Showing {Math.min(entries, filteredReports.length)} of {filteredReports.length} entries
+                {pagination.total > 0 
+                  ? `Showing ${pagination.from || 0} to ${pagination.to || 0} of ${pagination.total} entries`
+                  : 'No entries to display'
+                }
               </Typography>
 
-              <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                Page 1 of 1
-              </Typography>
+              {pagination.last_page > 1 && (
+                <Pagination
+                  count={pagination.last_page}
+                  page={pagination.current_page}
+                  onChange={handlePageChange}
+                  color="primary"
+                  size="medium"
+                  showFirstButton
+                  showLastButton
+                  disabled={loading}
+                />
+              )}
             </Stack>
           </>
         )}

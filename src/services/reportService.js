@@ -42,21 +42,32 @@ const reportService = {
         };
       }
 
-      // Handle both array and paginated response
+      // Handle the Laravel paginated response structure
       const responseData = normalized.data;
-      const isArray = Array.isArray(responseData);
-
+      
+      // Check if it's a paginated response (has data, current_page, last_page, etc.)
+      if (responseData && typeof responseData === 'object' && responseData.data && Array.isArray(responseData.data)) {
+        return {
+          success: true,
+          data: responseData.data, // The actual records array
+          pagination: {
+            current_page: parseInt(responseData.current_page) || 1,
+            last_page: parseInt(responseData.last_page) || 1,
+            per_page: parseInt(responseData.per_page) || 25,
+            total: parseInt(responseData.total) || 0,
+            from: parseInt(responseData.from) || 0,
+            to: parseInt(responseData.to) || 0
+          },
+          message: normalized.message || 'Reports loaded successfully'
+        };
+      }
+      
+      // Fallback for simple array response
+      const dataArray = Array.isArray(responseData) ? responseData : [];
       return {
         success: true,
-        data: isArray ? responseData : (responseData?.data || []),
-        pagination: isArray ? null : {
-          current_page: responseData?.current_page || 1,
-          last_page: responseData?.last_page || 1,
-          per_page: responseData?.per_page || 25,
-          total: responseData?.total || 0,
-          from: responseData?.from || 0,
-          to: responseData?.to || 0
-        },
+        data: dataArray,
+        pagination: null,
         message: normalized.message || 'Reports loaded successfully'
       };
     } catch (error) {
@@ -65,6 +76,82 @@ const reportService = {
         message: extractErrorMessage(error),
         data: [],
         pagination: null
+      };
+    }
+  },
+
+  /**
+   * Get aggregated summary stats for reports page
+   * @param {Object} params - Optional filters (e.g., date_from, date_to)
+   * @returns {Object} - { success, data, message }
+   */
+  getSummary: async (params = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (params.date_from) queryParams.append('date_from', params.date_from);
+      if (params.date_to) queryParams.append('date_to', params.date_to);
+
+      const url = `/reports/summary${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await apiClient.get(url);
+      const normalized = normalizeResponse(response);
+
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Summary loaded successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+      };
+    }
+  },
+
+  /**
+   * Get package-wise income and business counts
+   * @param {Object} params - Optional filters (e.g., date_from, date_to)
+   * @returns {Object} - { success, data, message }
+   */
+  getPackageIncome: async (params = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+
+      if (params.date_from) queryParams.append('date_from', params.date_from);
+      if (params.date_to) queryParams.append('date_to', params.date_to);
+
+      const url = `/reports/package-income${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await apiClient.get(url);
+      const normalized = normalizeResponse(response);
+
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: [],
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data || [],
+        message: normalized.message || 'Package income loaded successfully',
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: [],
       };
     }
   },

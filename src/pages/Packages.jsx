@@ -21,6 +21,8 @@ import {
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RestoreIcon from "@mui/icons-material/Restore";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
 import { useNavigate } from "react-router-dom";
 import packageService from "../services/packageService";
 
@@ -31,6 +33,9 @@ export default function Packages() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
+  const [deletedDialog, setDeletedDialog] = useState(false);
+  const [deletedPackages, setDeletedPackages] = useState([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
 
   useEffect(() => {
     fetchPackages();
@@ -84,6 +89,31 @@ export default function Packages() {
 
   const openSubscriptions = (id) => navigate(`/edit-package/${id}`);
 
+  const handleViewDeleted = async () => {
+    setDeletedDialog(true);
+    setLoadingDeleted(true);
+    const result = await packageService.getDeleted();
+    
+    if (result.success) {
+      setDeletedPackages(result.data);
+    } else {
+      setError(result.message || "Failed to load deleted packages");
+    }
+    setLoadingDeleted(false);
+  };
+
+  const handleRestore = async (id) => {
+    const result = await packageService.restore(id);
+    if (result.success) {
+      setSuccess("Package restored successfully");
+      fetchPackages();
+      handleViewDeleted(); // Refresh deleted list
+      setTimeout(() => setSuccess(""), 3000);
+    } else {
+      setError(result.message || "Failed to restore package");
+    }
+  };
+
   return (
     <Box>
       {/* --- Header --- */}
@@ -99,22 +129,36 @@ export default function Packages() {
             Packages
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            All Packages
+            All New Packages
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          onClick={() => navigate("/add-package")}
-          sx={{
-            backgroundColor: "#0C2548",
-            borderRadius: 2,
-            textTransform: "none",
-            px: 3,
-          }}
-        >
-          Add
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="outlined"
+            startIcon={<DeleteSweepIcon />}
+            onClick={handleViewDeleted}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              px: 3,
+            }}
+          >
+            View Deleted
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => navigate("/add-package")}
+            sx={{
+              backgroundColor: "#0C2548",
+              borderRadius: 2,
+              textTransform: "none",
+              px: 3,
+            }}
+          >
+            Add
+          </Button>
+        </Stack>
       </Stack>
 
       {error && (
@@ -129,41 +173,45 @@ export default function Packages() {
         </Alert>
       )}
 
-      {/* Packages */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : packages.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <Typography color="text.secondary">No packages available</Typography>
-        </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 2, sm: 3 } }}>
-          {packages.map((pkg) => (
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : packages.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 8 }}>
+            <Typography color="text.secondary">No packages available</Typography>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 2, sm: 3 } }}>
+            {packages.map((pkg) => {
+          const intervalDisplay = pkg.price_interval === 'monthly' ? 'Month' : 'Year';
+          const pluralInterval = pkg.duration > 1 ? intervalDisplay + 's' : intervalDisplay;
+          
+          return (
             <PackageCard
               key={pkg.id}
               id={pkg.id}
               title={pkg.name}
               status={pkg.is_active == 1 ? "Active" : "Inactive"}
               features={{
-                max_cameras: pkg.max_cameras,
-                max_locations: pkg.max_locations,
-                max_users: pkg.max_users,
-              }}
-              priceText={`$ ${pkg.price} / ${(pkg.price_interval).charAt(0).toUpperCase() + (pkg.price_interval).substring(1)}`}
-              footer={pkg.description || "Package details"}
-              inactive={pkg.is_active == 0}
-              onClick={() => openSubscriptions(pkg.id)}
-              onEdit={handleEdit}
-              onDelete={handleDeleteClick}
-              onToggleStatus={handleToggleStatus}
-            />
-          ))}
-        </Box>
-      )}
+                    max_cameras: pkg.max_cameras,
+                    duration: pkg.duration,
+                    max_users: pkg.max_users,
+                  }}
+                  priceText={`$ ${pkg.price} / ${pkg.duration} ${pluralInterval}`}
+                  footer={pkg.description || "Package details"}
+                  inactive={pkg.is_active == 0}
+                  onClick={() => openSubscriptions(pkg.id)}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteClick}
+                  onToggleStatus={handleToggleStatus}
+                />
+              );
+            })}
+          </Box>
+        )}
 
-      {/* Delete Confirmation Dialog */}
+        {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, id: null })}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
@@ -174,6 +222,93 @@ export default function Packages() {
           <Button onClick={handleDeleteConfirm} color="error" variant="contained">
             Delete
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Deleted Packages Dialog */}
+      <Dialog 
+        open={deletedDialog} 
+        onClose={() => setDeletedDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <DeleteSweepIcon />
+          Deleted Packages
+        </DialogTitle>
+        <DialogContent>
+          {loadingDeleted ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : deletedPackages.length === 0 ? (
+            <Box sx={{ textAlign: 'center', py: 4 }}>
+              <Typography color="text.secondary">No deleted packages found</Typography>
+            </Box>
+          ) : (
+            <Stack spacing={2} sx={{ mt: 2 }}>
+              {deletedPackages.map((pkg) => {
+                const intervalDisplay = pkg.price_interval == 'monthly' ? 'Month' : 'Year';
+                const pluralInterval = pkg.duration > 1 ? intervalDisplay + 's' : intervalDisplay;
+                
+                return (
+                  <Card
+                    key={pkg.id}
+                    elevation={0}
+                    sx={{
+                      border: '1px solid #E1E7EF',
+                      borderRadius: 2,
+                      opacity: 0.8,
+                    }}
+                  >
+                    <CardContent>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Box sx={{ flex: 1 }}>
+                          <Typography fontWeight={600} sx={{ mb: 1 }}>
+                            {pkg.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            📹 Cameras: {pkg.max_cameras || 0} | 👥 Users: {pkg.max_users || 0}
+                          </Typography>
+                          <Typography variant="body2" fontWeight={600} color="primary">
+                            $ {pkg.price} / {pkg.duration} {pluralInterval}
+                          </Typography>
+                          {pkg.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                              {pkg.description}
+                            </Typography>
+                          )}
+                          {pkg.deleted_at && (
+                            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
+                              Deleted: {new Date(pkg.deleted_at).toLocaleString()}
+                            </Typography>
+                          )}
+                        </Box>
+                        
+                        <Button
+                          variant="contained"
+                          startIcon={<RestoreIcon />}
+                          onClick={() => handleRestore(pkg.id)}
+                          sx={{
+                            backgroundColor: "#10B981",
+                            textTransform: "none",
+                            '&:hover': {
+                              backgroundColor: "#059669",
+                            }
+                          }}
+                        >
+                          Restore
+                        </Button>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeletedDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -264,7 +399,7 @@ function PackageCard({
         {/* Package Limits */}
         <Stack spacing={1} sx={{ my: 2 }}>
           <Typography sx={{ fontSize: 13, color: "#4A4A4A", fontWeight: 500 , textAlign: "center"}}>
-            📹 Cameras: {features.max_cameras || 10} | 📍 Locations: {features.max_locations || 5} | 👥 Users: {features.max_users || 10}
+            📹 Cameras: {features.max_cameras || 0} | 👥 Users: {features.max_users || 0}
           </Typography>
           
           {/* Features */}
@@ -290,7 +425,7 @@ function PackageCard({
           textAlign="center"
           sx={{ mt: 1, color: "#1A1A1A", fontSize: 18 }}
         >
-          {priceText}
+        {priceText}
         </Typography>
 
         <Divider sx={{ my: 1 }} />

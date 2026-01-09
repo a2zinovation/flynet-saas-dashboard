@@ -43,8 +43,8 @@ const getStatsConfig = (data) => [
   },
   {
     id: "profit",
-    label: "Reports",
-    value: 0,
+    label: "Total Income",
+    value: data?.profit || 0,
     icon: "/assets/icons/profit.svg",
     valueColor: "#17A34A",
     route: "/reports",
@@ -60,6 +60,8 @@ function StatCard({ stat }) {
       onClick={() => navigate(stat.route)}
       sx={{
         width: "100%",
+        height: "100%",
+        minWidth: "250px",
         textAlign: "left",
         borderRadius: 2,
         display: "block",
@@ -72,7 +74,7 @@ function StatCard({ stat }) {
           p: { xs: 2, sm: 2.5 },
           borderRadius: 2,
           border: "1px solid rgba(14, 30, 37, 0.06)",
-          minHeight: { xs: 80, sm: 96 },
+          height: { xs: 100, sm: 110 },
           width: "100%",
           display: "flex",
           alignItems: "center",
@@ -86,11 +88,12 @@ function StatCard({ stat }) {
           },
         }}
       >
-        <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1 }}>
+        <Stack direction="row" spacing={2} alignItems="center" sx={{ flex: 1, width: "100%" }}>
           <Box
             sx={{
               width: 48,
               height: 48,
+              flexShrink: 0,
               borderRadius: "12px",
               display: "flex",
               alignItems: "center",
@@ -106,8 +109,19 @@ function StatCard({ stat }) {
             />
           </Box>
 
-          <Box>
-            <Typography variant="subtitle2" color="text.secondary">
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography 
+              variant="subtitle2" 
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                lineHeight: 1.3,
+              }}
+            >
               {stat.label}
             </Typography>
             <Typography
@@ -235,15 +249,15 @@ export default function Dashboard() {
           <CircularProgress />
         </Box>
       ) : (
-        <Grid container spacing={{ xs: 2, sm: 3, md: 4, lg: 5 }} sx={{ mb: 3 }}>
+        <Grid container spacing={{ xs: 1.5, sm: 2 }} sx={{ mb: 3, justifyContent: 'center' }}>
           {stats.map((s) => (
             <Grid
               item
               key={s.id}
               xs={12}
               sm={6}
-              md={3}
-              display="flex"
+              md={6}
+              lg={3}
             >
               <StatCard stat={s} />
             </Grid>

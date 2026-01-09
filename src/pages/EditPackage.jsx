@@ -31,7 +31,7 @@ export default function EditPackage() {
     price: "",
     is_free: false,
     price_interval: "monthly",
-    interval: "",
+    duration: "",
     trial_days: "",
     max_cameras: "",
     max_locations: "",
@@ -78,7 +78,7 @@ export default function EditPackage() {
         price: priceValue,
         is_free: isFree,
         price_interval: priceInterval,
-        interval: pkg.interval || "",
+        duration: pkg.duration || "",
         trial_days: pkg.trial_days || "",
         max_cameras: pkg.max_cameras || "",
         max_locations: pkg.max_locations || "",
@@ -123,7 +123,7 @@ export default function EditPackage() {
       description: form.description,
       price: parseFloat(form.price) || 0,
       price_interval: form.price_interval,
-      interval: parseInt(form.interval) || 1,
+      duration: parseInt(form.duration) || 1,
       trial_days: parseInt(form.trial_days) || 0,
       max_cameras: parseInt(form.max_cameras) || 0,
       max_locations: parseInt(form.max_locations) || 0,
@@ -247,12 +247,12 @@ export default function EditPackage() {
                   value={form.price_interval}
                   onChange={handle}
                 >
-                  <MenuItem value="monthly">Monthly</MenuItem>
-                  <MenuItem value="yearly">Yearly</MenuItem>
+                  <MenuItem value="monthly">Month</MenuItem>
+                  <MenuItem value="yearly">Year</MenuItem>
                 </Select>
               </FormControl>
 
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Trial Days:
               </Typography>
               <TextField
@@ -265,7 +265,7 @@ export default function EditPackage() {
                 placeholder="0"
                 disabled={saving}
                 inputProps={{ min: 0 }}
-              />
+              /> */}
 
               {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Payment Gateway:
@@ -330,9 +330,9 @@ export default function EditPackage() {
               <TextField
                 fullWidth
                 size="small"
-                name="interval"
+                name="duration"
                 type="number"
-                value={form.interval}
+                value={form.duration}
                 onChange={handle}
                 placeholder="1"
                 disabled={saving}

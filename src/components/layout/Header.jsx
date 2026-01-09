@@ -22,6 +22,7 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import MenuIcon from "@mui/icons-material/Menu";
 
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -123,10 +124,10 @@ const Header = ({ drawerWidth }) => {
         position="fixed"
         elevation={0}
         sx={{
-          zIndex: (t) => t.zIndex.drawer + 2,
+          // zIndex: (t) => t.zIndex.drawer + 2,
           backgroundColor: "transparent",
           color: "inherit",
-          backdropFilter: "blur(3px)",
+          boxShadow: "none",
         }}
       >
         <Toolbar
@@ -134,10 +135,24 @@ const Header = ({ drawerWidth }) => {
             justifyContent: "space-between",
             minHeight: 74,
             pr: 3,
-            ml: { sm: `${drawerWidth}px` },
+            ml: { xs: 0, sm: `${drawerWidth}px` },
           }}
         >
-          <Box />
+          {/* Mobile Menu Button */}
+          <Box sx={{ display: { xs: "block", sm: "none" } }}>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={() => window.dispatchEvent(new CustomEvent('toggleMobileMenu'))}
+              sx={{ ml: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
+          
+          {/* Desktop spacer */}
+          <Box sx={{ display: { xs: "none", sm: "block" } }} />
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             {/* Language Selector */}

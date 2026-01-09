@@ -175,6 +175,92 @@ const businessService = {
       };
     }
   },
+
+  // Get business subscriptions (history)
+  getSubscriptions: async (businessId) => {
+    try {
+      const response = await apiClient.get(`/business/${businessId}/subscriptions`);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: []
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data || [],
+        message: normalized.message || 'Subscriptions loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: []
+      };
+    }
+  },
+
+  // Add/Renew subscription for business
+  addSubscription: async (subscriptionData) => {
+    try {
+      const response = await apiClient.post('/business/subscription/add', subscriptionData);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null,
+          validationErrors: getValidationErrors(response)
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Subscription added successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null,
+        validationErrors: getValidationErrors(error)
+      };
+    }
+  },
+
+  // Get current active subscription
+  getCurrentSubscription: async (businessId) => {
+    try {
+      const response = await apiClient.get(`/business/${businessId}/subscription/current`);
+      const normalized = normalizeResponse(response);
+      
+      if (!isSuccessResponse(response)) {
+        return {
+          success: false,
+          message: extractErrorMessage(response),
+          data: null
+        };
+      }
+
+      return {
+        success: true,
+        data: normalized.data,
+        message: normalized.message || 'Current subscription loaded successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: extractErrorMessage(error),
+        data: null
+      };
+    }
+  },
 };
 
 export default businessService;

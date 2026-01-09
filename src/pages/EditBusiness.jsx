@@ -60,6 +60,7 @@ export default function EditBusiness() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchPackages();
@@ -106,10 +107,10 @@ export default function EditBusiness() {
         website: business.website || "",
         
         // Owner Information
-        prefix: business?.users[0]?.prefix || "",
-        first_name: business?.users[0]?.first_name || "",
-        last_name: business?.users[0]?.last_name || "",
-        username: business?.users[0]?.username || "",
+        prefix: business?.admin_user?.prefix || "",
+        first_name: business?.admin_user?.first_name || "",
+        last_name: business?.admin_user?.last_name || "",
+        username: business?.admin_user?.username || "",
         email: business.email || "",
         
         // Package Information
@@ -124,8 +125,134 @@ export default function EditBusiness() {
     setLoading(false);
   };
 
-  const handle = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handle = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const validateField = (name, value) => {
+    let error = "";
+
+    switch (name) {
+      case "name":
+        if (!value.trim()) error = "Business name is required";
+        else if (value.length < 2) error = "Business name must be at least 2 characters";
+        else if (value.length > 100) error = "Business name must not exceed 100 characters";
+        break;
+
+      case "phone":
+        if (!value.trim()) error = "Phone number is required";
+        else if (!/^\+?[\d\s\-()]{10,20}$/.test(value)) error = "Please enter a valid phone number";
+        break;
+
+      case "alternate_phone":
+        if (value && !/^\+?[\d\s\-()]{10,20}$/.test(value)) error = "Please enter a valid phone number";
+        break;
+
+      case "email":
+        if (!value.trim()) error = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Please enter a valid email address";
+        break;
+
+      case "website":
+        if (value && !/^https?:\/\/.+\..+/.test(value)) error = "Please enter a valid URL (e.g., https://example.com)";
+        break;
+
+      case "country":
+        if (!value.trim()) error = "Country is required";
+        else if (value.length < 2) error = "Country name must be at least 2 characters";
+        break;
+
+      case "state":
+        if (!value.trim()) error = "State is required";
+        else if (value.length < 2) error = "State name must be at least 2 characters";
+        break;
+
+      case "city":
+        if (!value.trim()) error = "City is required";
+        else if (value.length < 2) error = "City name must be at least 2 characters";
+        break;
+
+      case "zip_code":
+        if (!value.trim()) error = "Zip code is required";
+        else if (!/^[A-Za-z0-9\s\-]{3,10}$/.test(value)) error = "Please enter a valid zip code";
+        break;
+
+      case "landmark":
+        if (!value.trim()) error = "Landmark is required";
+        break;
+
+      case "currency":
+        if (!value) error = "Currency is required";
+        break;
+
+      case "first_name":
+        if (!value.trim()) error = "First name is required";
+        else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) error = "First name must contain only letters (2-50 characters)";
+        break;
+
+      case "last_name":
+        if (!value.trim()) error = "Last name is required";
+        else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) error = "Last name must contain only letters (2-50 characters)";
+        break;
+
+      case "username":
+        if (!value.trim()) error = "Username is required";
+        else if (!/^[a-zA-Z0-9_]{3,30}$/.test(value)) error = "Username must be 3-30 characters (letters, numbers, underscore only)";
+        break;
+
+      case "subscription_package_id":
+        if (!value) error = "Please select a package";
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    if (error) {
+      setErrors({ ...errors, [name]: error });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    const requiredFields = [
+      "name", "phone", "country", "state", "city", "zip_code", "landmark",
+      "currency", "first_name", "last_name", "username", "email",
+      "subscription_package_id"
+    ];
+
+    requiredFields.forEach((field) => {
+      const error = validateField(field, form[field]);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+
+    // Validate optional fields if they have values
+    if (form.alternate_phone) {
+      const error = validateField("alternate_phone", form.alternate_phone);
+      if (error) newErrors.alternate_phone = error;
+    }
+
+    if (form.website) {
+      const error = validateField("website", form.website);
+      if (error) newErrors.website = error;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleLogoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -135,9 +262,17 @@ export default function EditBusiness() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setSaving(true);
     setError("");
     setSuccess("");
+    setErrors({});
 
     const formData = new FormData();
     formData.append("id", form.id);
@@ -183,6 +318,11 @@ export default function EditBusiness() {
       }, 2000);
     } else {
       setError(result.message || "Failed to update business");
+      
+      // Handle validation errors from backend
+      if (result.validationErrors) {
+        setErrors(result.validationErrors);
+      }
     }
 
     setSaving(false);
@@ -216,6 +356,21 @@ export default function EditBusiness() {
         </Alert>
       )}
 
+      {Object.keys(errors).filter(key => errors[key]).length > 0 && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrors({})}>
+          <Typography sx={{ fontWeight: 600, mb: 1 }}>Please fix the following errors:</Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2 }}>
+            {Object.entries(errors)
+              .filter(([field, message]) => message) // Only show non-empty messages
+              .map(([field, message]) => (
+                <li key={field}>
+                  <strong>{field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {message}
+                </li>
+              ))}
+          </Box>
+        </Alert>
+      )}
+
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {success}
@@ -239,8 +394,10 @@ export default function EditBusiness() {
                 value={form.name}
                 placeholder="Business Name"
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.name}
+                helperText={errors.name}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
@@ -329,8 +486,10 @@ export default function EditBusiness() {
                 name="phone"
                 value={form.phone}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.phone}
+                helperText={errors.phone}
                 sx={input}
-                required
                 disabled={saving}
                 InputProps={{
                   startAdornment: (
@@ -354,8 +513,10 @@ export default function EditBusiness() {
                 name="country"
                 value={form.country}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.country}
+                helperText={errors.country}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
@@ -370,8 +531,10 @@ export default function EditBusiness() {
                 name="city"
                 value={form.city}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.city}
+                helperText={errors.city}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
@@ -386,8 +549,10 @@ export default function EditBusiness() {
                 name="landmark"
                 value={form.landmark}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.landmark}
+                helperText={errors.landmark}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
@@ -405,8 +570,10 @@ export default function EditBusiness() {
                 name="currency"
                 value={form.currency}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.currency}
+                helperText={errors.currency}
                 sx={input}
-                required
                 disabled={saving}
               >
                 <MenuItem value="">Select Currency</MenuItem>
@@ -426,6 +593,9 @@ export default function EditBusiness() {
                 name="website"
                 value={form.website}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.website}
+                helperText={errors.website}
                 sx={input}
                 disabled={saving}
                 InputProps={{
@@ -448,6 +618,9 @@ export default function EditBusiness() {
                 name="alternate_phone"
                 value={form.alternate_phone}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.alternate_phone}
+                helperText={errors.alternate_phone}
                 sx={input}
                 disabled={saving}
                 InputProps={{
@@ -470,8 +643,10 @@ export default function EditBusiness() {
                 name="state"
                 value={form.state}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.state}
+                helperText={errors.state}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
@@ -486,14 +661,16 @@ export default function EditBusiness() {
                 name="zip_code"
                 value={form.zip_code}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.zip_code}
+                helperText={errors.zip_code}
                 sx={input}
-                required
                 disabled={saving}
               />
             </Box>
 
             {/* Time zone */}
-            <Box sx={fieldBox}>
+            {/* <Box sx={fieldBox}>
               <Typography sx={label}>Time zone*</Typography>
               <TextField 
                 select 
@@ -514,7 +691,7 @@ export default function EditBusiness() {
                 <MenuItem value="Europe/London">Europe/London (GMT)</MenuItem>
                 <MenuItem value="UTC">UTC</MenuItem>
               </TextField>
-            </Box>
+            </Box> */}
           </Grid>
         </Grid>
 
@@ -560,8 +737,10 @@ export default function EditBusiness() {
               name="first_name"
               value={form.first_name}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.first_name}
+              helperText={errors.first_name}
               sx={input}
-              required
               disabled={saving}
               InputProps={{
                 startAdornment: (
@@ -583,8 +762,10 @@ export default function EditBusiness() {
               name="last_name"
               value={form.last_name}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.last_name}
+              helperText={errors.last_name}
               sx={input}
-              required
               disabled={saving}
               InputProps={{
                 startAdornment: (
@@ -606,8 +787,10 @@ export default function EditBusiness() {
               name="username"
               value={form.username}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.username}
+              helperText={errors.username}
               sx={input}
-              required
               disabled={saving}
               InputProps={{
                 startAdornment: (
@@ -630,8 +813,10 @@ export default function EditBusiness() {
               name="email"
               value={form.email}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.email}
+              helperText={errors.email}
               sx={input}
-              required
               disabled={saving}
               InputProps={{
                 startAdornment: (

@@ -2,10 +2,10 @@ import apiClient from '../config/api';
 import { extractErrorMessage, isSuccessResponse, normalizeResponse, getValidationErrors } from '../utils/apiResponseHandler';
 
 const authService = {
-  // Login
-  login: async (email, password) => {
+  // Super Admin Login
+  superAdminLogin: async (email, password) => {
     try {
-      const response = await apiClient.post('/login', { email, password });
+      const response = await apiClient.post('/super-admin-login', { email, password });
       const normalized = normalizeResponse(response);
       
       if (!isSuccessResponse(response)) {
@@ -16,16 +16,17 @@ const authService = {
         };
       }
 
-      // Handle both old (data.Data.token) and new (data.data.token/access_token) response formats
+      // Handle response format
       const tokenData = normalized.data || response.Data;
       if (tokenData && (tokenData.token || tokenData.access_token)) {
         const token = tokenData.token || tokenData.access_token;
         localStorage.setItem('jwt_token', token);
         localStorage.setItem('flynet_user', JSON.stringify(tokenData));
+        localStorage.setItem('user_role', 'super_admin'); // Store role for access control
         return {
           success: true,
           data: tokenData,
-          message: normalized.message
+          message: normalized.message || 'Login successful'
         };
       }
       
@@ -40,6 +41,12 @@ const authService = {
         validationErrors: getValidationErrors(error)
       };
     }
+  },
+
+  // Login (kept for backward compatibility, but should use superAdminLogin)
+  login: async (email, password) => {
+    // Redirect to super admin login for SAAS system
+    return authService.superAdminLogin(email, password);
   },
 
   // Refresh token
@@ -86,6 +93,7 @@ const authService = {
     } finally {
       localStorage.removeItem('jwt_token');
       localStorage.removeItem('flynet_user');
+      localStorage.removeItem('user_role');
     }
   },
 
@@ -98,6 +106,17 @@ const authService = {
       console.error('Error parsing user data:', error);
       return null;
     }
+  },
+
+  // Check if user is super admin
+  isSuperAdmin: () => {
+    const role = localStorage.getItem('user_role');
+    return role === 'super_admin';
+  },
+
+  // Get user role
+  getUserRole: () => {
+    return localStorage.getItem('user_role');
   },
 
   // Test API connection

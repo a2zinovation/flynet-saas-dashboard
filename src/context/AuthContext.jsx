@@ -35,6 +35,14 @@ export const AuthProvider = ({ children }) => {
     return result.success;
   };
 
+  const isSuperAdmin = () => {
+    return authService.isSuperAdmin();
+  };
+
+  const getUserRole = () => {
+    return authService.getUserRole();
+  };
+
   // Auto-refresh token every 30 minutes
   useEffect(() => {
     if (user) {
@@ -47,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, login, logout, loading, isSuperAdmin, getUserRole }}>
       {children}
     </AuthContext.Provider>
   );

@@ -144,7 +144,7 @@ const settingsService = {
           success: false,
           message: extractErrorMessage(response),
           data: null,
-          validationErrors: getValidationErrors(response)
+          validationErrors: response?.data?.message || getValidationErrors(response)
         };
       }
 
@@ -158,10 +158,11 @@ const settingsService = {
         success: false,
         message: extractErrorMessage(error),
         data: null,
-        validationErrors: getValidationErrors(error)
+        validationErrors: error?.response?.data?.message || getValidationErrors(error)
       };
     }
   },
+
 
   /**
    * Get all payment gateways

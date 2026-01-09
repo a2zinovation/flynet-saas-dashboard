@@ -13,6 +13,7 @@ import {
   MenuItem,
   FormControl,
   Table,
+  TableContainer,
   TableHead,
   TableRow,
   TableCell,
@@ -22,6 +23,7 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  Pagination,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -39,8 +41,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ToggleOnIcon from "@mui/icons-material/ToggleOn";
 import ToggleOffIcon from "@mui/icons-material/ToggleOff";
+import CardMembershipIcon from "@mui/icons-material/CardMembership";
 import { useNavigate } from "react-router-dom";
 import businessService from "../services/businessService";
+import SubscriptionDialog from "../components/business/SubscriptionDialog";
 
 /**
  * AllBusiness.jsx
@@ -60,11 +64,20 @@ export default function AllBusiness() {
   const [search, setSearch] = useState("");
   const [entries, setEntries] = useState(25);
   const [rows, setRows] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
+  const [pagination, setPagination] = useState({
+    current_page: 1,
+    last_page: 1,
+    per_page: 25,
+    total: 0,
+    from: 0,
+    to: 0,
+  });
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -83,6 +96,13 @@ export default function AllBusiness() {
     contact: true,
     status: true,
     subscription: true,
+  });
+
+  // Subscription dialog state
+  const [subscriptionDialog, setSubscriptionDialog] = useState({
+    open: false,
+    businessId: null,
+    businessName: "",
   });
 
   // Fetch businesses from API
@@ -130,6 +150,18 @@ export default function AllBusiness() {
     setDeleteDialog({ open: false, id: null });
   };
 
+  const handleSubscriptionClick = (business) => {
+    setSubscriptionDialog({
+      open: true,
+      businessId: business.id,
+      businessName: business.name,
+    });
+  };
+
+  const handleSubscriptionSuccess = () => {
+    fetchBusinesses(); // Refresh the list to show updated subscription
+  };
+
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
@@ -141,6 +173,7 @@ export default function AllBusiness() {
       dateFrom: "",
       dateTo: "",
     });
+    setCurrentPage(1);
   };
 
   const filtered = useMemo(() => {
@@ -202,6 +235,46 @@ export default function AllBusiness() {
 
     return result;
   }, [rows, search, filters]);
+
+  // Paginate filtered results
+  const paginated = useMemo(() => {
+    const startIndex = (currentPage - 1) * entries;
+    const endIndex = startIndex + entries;
+    return filtered.slice(startIndex, endIndex);
+  }, [filtered, entries, currentPage]);
+
+  // Update pagination summary
+  useEffect(() => {
+    const total = filtered.length;
+    const lastPage = Math.max(1, Math.ceil(total / entries));
+    const from = total > 0 ? (currentPage - 1) * entries + 1 : 0;
+    const to = Math.min(currentPage * entries, total);
+    setPagination({
+      current_page: currentPage,
+      last_page: lastPage,
+      per_page: entries,
+      total,
+      from,
+      to,
+    });
+  }, [filtered.length, entries, currentPage]);
+
+  // Reset to first page on filters/search/entries change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filters.status, filters.package, filters.dateFrom, filters.dateTo]);
+
+  const handleEntriesChange = (e) => {
+    setEntries(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (event, value) => {
+    setCurrentPage(value);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   // Get unique packages for filter dropdown
   const availablePackages = useMemo(() => {
@@ -423,7 +496,7 @@ export default function AllBusiness() {
               <FormControl size="small" sx={{ minWidth: 80 }}>
                 <Select
                   value={entries}
-                  onChange={(e) => setEntries(Number(e.target.value))}
+                  onChange={handleEntriesChange}
                   size="small"
                 >
                   <MenuItem value={10}>10</MenuItem>
@@ -442,7 +515,7 @@ export default function AllBusiness() {
                 onClick={handleExportCSV}
                 sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "120px" } }}
               >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export </Box>CSV
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export CSV</Box>
               </Button>
               <Button 
                 startIcon={<FileDownloadOutlinedIcon />} 
@@ -450,7 +523,7 @@ export default function AllBusiness() {
                 onClick={handleExportExcel}
                 sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "120px" } }}
               >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export </Box>Excel
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Export Excel</Box>
               </Button>
               <Button 
                 startIcon={<PrintOutlinedIcon />} 
@@ -466,7 +539,7 @@ export default function AllBusiness() {
                 onClick={() => setColumnVisibilityOpen(true)}
                 sx={{ textTransform: "none", minWidth: { xs: "auto", sm: "140px" } }}
               >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Column </Box>Columns
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>Column Visibility</Box>
               </Button>
               <Button 
                 startIcon={<UploadFileOutlinedIcon />} 
@@ -598,137 +671,304 @@ export default function AllBusiness() {
           </Paper>
         )}
 
-        {/* Table */}
-        <Box sx={{ mt: 1, overflowX: 'auto', width: '100%', WebkitOverflowScrolling: 'touch' }}>
+        {/* Desktop Table View */}
+        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <TableContainer
+            sx={{
+              mt: 1,
+              width: '100%',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'thin',
+              touchAction: 'pan-x pan-y',
+              '&::-webkit-scrollbar': {
+                height: 10,
+              },
+              '&::-webkit-scrollbar-track': {
+                backgroundColor: '#f1f1f1',
+                borderRadius: 10,
+              },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: '#a3a3a3',
+                borderRadius: 10,
+                '&:hover': { backgroundColor: '#7a7a7a' },
+              },
+            }}
+          >
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Table size="small" sx={{ minWidth: 1000 }}>
+                <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
+                  <TableRow>
+                    {visibleColumns.registeredOn && <TableCell sx={{ width: 160 }}>Registered on</TableCell>}
+                    {visibleColumns.businessName && <TableCell>Business Name</TableCell>}
+                    {visibleColumns.email && <TableCell>Email</TableCell>}
+                    {visibleColumns.contact && <TableCell>Business Contact</TableCell>}
+                    {visibleColumns.status && <TableCell sx={{ width: 100 }}>Status</TableCell>}
+                    {visibleColumns.subscription && <TableCell>Current Subscription</TableCell>}
+                    <TableCell align="center" sx={{ width: 140 }}>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+
+                <TableBody>
+                  {paginated.map((row) => (
+                    <TableRow key={row.id} hover>
+                      {visibleColumns.registeredOn && (
+                        <TableCell>
+                          {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
+                        </TableCell>
+                      )}
+                      {visibleColumns.businessName && (
+                        <TableCell>
+                          <Typography fontWeight={600}>{row.name || "—"}</Typography>
+                        </TableCell>
+                      )}
+                      {visibleColumns.email && <TableCell>{row.email || "—"}</TableCell>}
+                      {visibleColumns.contact && <TableCell>{row.phone || "—"}</TableCell>}
+                      {visibleColumns.status && (
+                        <TableCell>
+                          <Chip 
+                            label={row.is_active == 1 ? "Active" : "Inactive"} 
+                            color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
+                            size="small" 
+                          />
+                        </TableCell>
+                      )}
+                      {visibleColumns.subscription && (
+                        <TableCell>
+                          {row.subscription_package?.name || "No Package"}
+                        </TableCell>
+                      )}
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={0.5} justifyContent="center" flexWrap="wrap">
+                          <Tooltip title="Edit Business">
+                            <IconButton
+                              size="small"
+                              onClick={() => navigate(`/edit-business/${row.id}`)}
+                              sx={{
+                                backgroundColor: "#E3F2FD",
+                                color: "#1976D2",
+                                borderRadius: "6px",
+                                "&:hover": {
+                                  backgroundColor: "#BBDEFB",
+                                },
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          <Tooltip title={row.is_active == 1 ? 'Deactivate' : 'Activate'}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleToggleStatus(row.id)}
+                              sx={{
+                                backgroundColor: row.is_active == 1 ? "#e0ffe1ff" : "#E8F5E9",
+                                color: row.is_active == 1 ? "#00b55aff" : "#388E3C",
+                                borderRadius: "6px",
+                                "&:hover": {
+                                  backgroundColor: row.is_active == 1 ? "#b2ffc5ff" : "#C8E6C9",
+                                },
+                              }}
+                            >
+                              {row.is_active == 1 ? (
+                                <ToggleOffIcon fontSize="small" />
+                              ) : (
+                                <ToggleOnIcon fontSize="small" />
+                              )}
+                            </IconButton>
+                          </Tooltip>
+                          
+                          <Tooltip title="Delete Business">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDeleteClick(row.id)}
+                              sx={{
+                                backgroundColor: "#FFEBEE",
+                                color: "#D32F2F",
+                                borderRadius: "6px",
+                                "&:hover": {
+                                  backgroundColor: "#FFCDD2",
+                                },
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Manage Subscription">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleSubscriptionClick(row)}
+                              sx={{
+                                backgroundColor: "#E0F2FE",
+                                color: "#0369A1",
+                                borderRadius: "6px",
+                                "&:hover": {
+                                  backgroundColor: "#BAE6FD",
+                                },
+                              }}
+                            >
+                              <CardMembershipIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {filtered.length === 0 && !loading && (
+                    <TableRow>
+                      <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} align="center" sx={{ py: 8 }}>
+                        <Typography color="text.secondary">No businesses found</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </TableContainer>
+        </Box>
+
+        {/* Mobile Card View */}
+        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
               <CircularProgress />
             </Box>
+          ) : filtered.length > 0 ? (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {paginated.map((row) => (
+                <Paper
+                  key={row.id}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    border: '1px solid #E8EDF2',
+                    borderRadius: 2,
+                    backgroundColor: '#FBFCFE',
+                  }}
+                >
+                  {/* Header: Name + Status */}
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 1.5 }}>
+                    <Box sx={{ flex: 1, pr: 1 }}>
+                      <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.25 }}>
+                        {row.name || "—"}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {row.created_at ? new Date(row.created_at).toLocaleDateString() : "—"}
+                      </Typography>
+                    </Box>
+                    <Chip 
+                      label={row.is_active == 1 ? "Active" : "Inactive"} 
+                      color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
+                      size="small"
+                      sx={{ flexShrink: 0 }}
+                    />
+                  </Stack>
+
+                  {/* Details */}
+                  <Stack spacing={1} sx={{ mb: 1.5, pb: 1.5, borderBottom: '1px solid #E8EDF2' }}>
+                    {row.email && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                          Email
+                        </Typography>
+                        <Typography variant="body2">{row.email}</Typography>
+                      </Box>
+                    )}
+                    {row.phone && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                          Contact
+                        </Typography>
+                        <Typography variant="body2">{row.phone}</Typography>
+                      </Box>
+                    )}
+                    {row.subscription_package?.name && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.25 }}>
+                          Subscription
+                        </Typography>
+                        <Typography variant="body2">{row.subscription_package.name}</Typography>
+                      </Box>
+                    )}
+                  </Stack>
+
+                  {/* Action Buttons */}
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<EditIcon />}
+                      onClick={() => navigate(`/edit-business/${row.id}`)}
+                      sx={{ flex: 1, textTransform: 'none', backgroundColor: '#1976D2' }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => handleToggleStatus(row.id)}
+                      sx={{ 
+                        flex: 1, 
+                        textTransform: 'none',
+                        color: row.is_active == 1 ? '#388E3C' : '#D32F2F',
+                        borderColor: row.is_active == 1 ? '#388E3C' : '#D32F2F'
+                      }}
+                    >
+                      {row.is_active == 1 ? 'Deactivate' : 'Activate'}
+                    </Button>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteClick(row.id)}
+                      sx={{
+                        color: '#D32F2F',
+                        border: '1px solid #D32F2F',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
           ) : (
-            <Table size="small" sx={{ minWidth: 900 }}>
-              <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
-                <TableRow>
-                  {visibleColumns.registeredOn && <TableCell sx={{ width: 180 }}>Registered on</TableCell>}
-                  {visibleColumns.businessName && <TableCell>Business Name</TableCell>}
-                  {visibleColumns.email && <TableCell>Email</TableCell>}
-                  {visibleColumns.contact && <TableCell>Business Contact</TableCell>}
-                  {visibleColumns.status && <TableCell>Status</TableCell>}
-                  {visibleColumns.subscription && <TableCell>Current Subscription</TableCell>}
-                  <TableCell align="center">Action</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {filtered.slice(0, entries).map((row) => (
-                  <TableRow key={row.id} hover>
-                    {visibleColumns.registeredOn && (
-                      <TableCell>
-                        {row.created_at ? new Date(row.created_at).toLocaleString() : "—"}
-                      </TableCell>
-                    )}
-                    {visibleColumns.businessName && (
-                      <TableCell>
-                        <Typography fontWeight={600}>{row.name || "—"}</Typography>
-                      </TableCell>
-                    )}
-                    {visibleColumns.email && <TableCell>{row.email || "—"}</TableCell>}
-                    {visibleColumns.contact && <TableCell>{row.phone || "—"}</TableCell>}
-                    {visibleColumns.status && (
-                      <TableCell>
-                        <Chip 
-                          label={row.is_active == 1 ? "Active" : "Inactive"} 
-                          color={statusColor(row.is_active == 1 ? "Active" : "Inactive")} 
-                          size="small" 
-                        />
-                      </TableCell>
-                    )}
-                    {visibleColumns.subscription && (
-                      <TableCell>
-                        {row.subscription_package?.name || "No Package"}
-                      </TableCell>
-                    )}
-                    <TableCell align="center">
-                      <Stack direction="row" spacing={1} justifyContent="center">
-                        <Tooltip title="Edit Business">
-                          <IconButton
-                            size="small"
-                            onClick={() => navigate(`/edit-business/${row.id}`)}
-                            sx={{
-                              backgroundColor: "#E3F2FD",
-                              color: "#1976D2",
-                              borderRadius: "8px",
-                              "&:hover": {
-                                backgroundColor: "#BBDEFB",
-                              },
-                            }}
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Tooltip title={row.is_active == 1 ? 'Deactivate' : 'Activate'}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleToggleStatus(row.id)}
-                            sx={{
-                              backgroundColor: row.is_active == 1 ? "#e0ffe1ff" : "#E8F5E9",
-                              color: row.is_active == 1 ? "#00b55aff" : "#388E3C",
-                              borderRadius: "8px",
-                              "&:hover": {
-                                backgroundColor: row.is_active == 1 ? "#b2ffc5ff" : "#C8E6C9",
-                              },
-                            }}
-                          >
-                            {row.is_active == 1 ? (
-                              <ToggleOffIcon fontSize="small" />
-                            ) : (
-                              <ToggleOnIcon fontSize="small" />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Tooltip title="Delete Business">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(row.id)}
-                            sx={{
-                              backgroundColor: "#FFEBEE",
-                              color: "#D32F2F",
-                              borderRadius: "8px",
-                              "&:hover": {
-                                backgroundColor: "#FFCDD2",
-                              },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-
-                {filtered.length === 0 && !loading && (
-                  <TableRow>
-                    <TableCell colSpan={Object.values(visibleColumns).filter(Boolean).length + 1} align="center" sx={{ py: 8 }}>
-                      <Typography color="text.secondary">No businesses found</Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography color="text.secondary">No businesses found</Typography>
+            </Box>
           )}
         </Box>
 
-        {/* Pagination placeholder (simple) */}
+        {/* Pagination */}
         <Divider sx={{ mt: 2 }} />
-        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-          <Typography variant="body2">
-            Showing {Math.min(entries, filtered.length)} of {filtered.length} entries
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={2}
+          sx={{ mt: 2 }}
+        >
+          <Typography variant="body2" color="text.secondary">
+            Showing {pagination.from} to {pagination.to} of {pagination.total} entries
           </Typography>
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            Page 1 of 1
-          </Typography>
+          {pagination.last_page > 1 && (
+            <Pagination
+              count={pagination.last_page}
+              page={pagination.current_page}
+              onChange={handlePageChange}
+              color="primary"
+              size="medium"
+              showFirstButton
+              showLastButton
+              disabled={loading}
+            />
+          )}
         </Stack>
       </Paper>
 
@@ -790,6 +1030,15 @@ export default function AllBusiness() {
           <Button onClick={() => setColumnVisibilityOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Subscription Management Dialog */}
+      <SubscriptionDialog
+        open={subscriptionDialog.open}
+        onClose={() => setSubscriptionDialog({ open: false, businessId: null, businessName: "" })}
+        businessId={subscriptionDialog.businessId}
+        businessName={subscriptionDialog.businessName}
+        onSuccess={handleSubscriptionSuccess}
+      />
     </Box>
   );
 }

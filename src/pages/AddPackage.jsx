@@ -28,8 +28,8 @@ export default function AddPackage() {
     description: "",
     price: "",
     is_free: false,
-    price_interval: "monthly",
-    interval: "",
+    price_interval: "month",
+    duration: "",
     trial_days: "",
     max_cameras: "",
     max_locations: "",
@@ -86,7 +86,7 @@ export default function AddPackage() {
       description: form.description,
       price: parseFloat(form.price) || 0,
       price_interval: form.price_interval,
-      interval: parseInt(form.interval) || 1,
+      duration: parseInt(form.duration) || 1,
       trial_days: parseInt(form.trial_days) || 0,
       max_cameras: parseInt(form.max_cameras) || 0,
       max_locations: parseInt(form.max_locations) || 0,
@@ -202,12 +202,12 @@ export default function AddPackage() {
                   value={form.price_interval}
                   onChange={handle}
                 >
-                  <MenuItem value="monthly">Monthly</MenuItem>
-                  <MenuItem value="yearly">Yearly</MenuItem>
+                  <MenuItem value="monthly">Month</MenuItem>
+                  <MenuItem value="yearly">Year</MenuItem>
                 </Select>
               </FormControl>
 
-              <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
+              {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Trial Days:
               </Typography>
               <TextField
@@ -220,7 +220,7 @@ export default function AddPackage() {
                 placeholder="0"
                 disabled={loading}
                 inputProps={{ min: 0 }}
-              />
+              /> */}
 
               {/* <Typography fontWeight={600} sx={{ mt: 3, mb: 1 }}>
                 Payment Gateway:
@@ -285,9 +285,9 @@ export default function AddPackage() {
               <TextField
                 fullWidth
                 size="small"
-                name="interval"
+                name="duration"
                 type="number"
-                value={form.interval}
+                value={form.duration}
                 onChange={handle}
                 placeholder="1"
                 disabled={loading}

@@ -98,7 +98,7 @@ export default function Login() {
           }}
         >
           <Typography variant="h4" fontWeight={700} textAlign="center" mb={1}>
-            Welcome!
+            Super Admin Login
           </Typography>
 
           <Typography
@@ -107,7 +107,7 @@ export default function Login() {
             color="text.secondary"
             mb={3}
           >
-            Login to your Super admin
+            Access restricted to Super Administrators only
           </Typography>
 
           {error && (

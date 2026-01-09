@@ -57,6 +57,7 @@ export default function AddBusiness() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     fetchPackages();
@@ -79,8 +80,147 @@ export default function AddBusiness() {
     }
   };
 
-  const handle = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handle = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    // Clear error for this field when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const validateField = (name, value) => {
+    let error = "";
+
+    switch (name) {
+      case "name":
+        if (!value.trim()) error = "Business name is required";
+        else if (value.length < 2) error = "Business name must be at least 2 characters";
+        else if (value.length > 100) error = "Business name must not exceed 100 characters";
+        break;
+
+      case "phone":
+        if (!value.trim()) error = "Phone number is required";
+        else if (!/^\+?[\d\s\-()]{10,20}$/.test(value)) error = "Please enter a valid phone number";
+        break;
+
+      case "alternate_phone":
+        if (value && !/^\+?[\d\s\-()]{10,20}$/.test(value)) error = "Please enter a valid phone number";
+        break;
+
+      case "email":
+        if (!value.trim()) error = "Email is required";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = "Please enter a valid email address";
+        break;
+
+      case "website":
+        if (value && !/^https?:\/\/.+\..+/.test(value)) error = "Please enter a valid URL (e.g., https://example.com)";
+        break;
+
+      case "country":
+        if (!value.trim()) error = "Country is required";
+        else if (value.length < 2) error = "Country name must be at least 2 characters";
+        break;
+
+      case "state":
+        if (!value.trim()) error = "State is required";
+        else if (value.length < 2) error = "State name must be at least 2 characters";
+        break;
+
+      case "city":
+        if (!value.trim()) error = "City is required";
+        else if (value.length < 2) error = "City name must be at least 2 characters";
+        break;
+
+      case "zip_code":
+        if (!value.trim()) error = "Zip code is required";
+        else if (!/^[A-Za-z0-9\s\-]{3,10}$/.test(value)) error = "Please enter a valid zip code";
+        break;
+
+      case "landmark":
+        if (!value.trim()) error = "Landmark is required";
+        break;
+
+      case "currency":
+        if (!value) error = "Currency is required";
+        break;
+
+      case "first_name":
+        if (!value.trim()) error = "First name is required";
+        else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) error = "First name must contain only letters (2-50 characters)";
+        break;
+
+      case "last_name":
+        if (!value.trim()) error = "Last name is required";
+        else if (!/^[a-zA-Z\s]{2,50}$/.test(value)) error = "Last name must contain only letters (2-50 characters)";
+        break;
+
+      case "username":
+        if (!value.trim()) error = "Username is required";
+        else if (!/^[a-zA-Z0-9_]{3,30}$/.test(value)) error = "Username must be 3-30 characters (letters, numbers, underscore only)";
+        break;
+
+      case "password":
+        if (!value) error = "Password is required";
+        else if (value.length < 8) error = "Password must be at least 8 characters";
+        else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) error = "Password must contain uppercase, lowercase, and number";
+        break;
+
+      case "password_confirmation":
+        if (!value) error = "Please confirm your password";
+        else if (value !== form.password) error = "Passwords do not match";
+        break;
+
+      case "subscription_package_id":
+        if (!value) error = "Please select a package";
+        break;
+
+      default:
+        break;
+    }
+
+    return error;
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const error = validateField(name, value);
+    if (error) {
+      setErrors({ ...errors, [name]: error });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    const requiredFields = [
+      "name", "phone", "country", 
+       "first_name", "last_name", "username", "email",
+      "password", "password_confirmation", "subscription_package_id"
+    ];
+
+    requiredFields.forEach((field) => {
+      const error = validateField(field, form[field]);
+      console.log(error);
+      
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+
+    // Validate optional fields if they have values
+    if (form.alternate_phone) {
+      const error = validateField("alternate_phone", form.alternate_phone);
+      if (error) newErrors.alternate_phone = error;
+    }
+
+    if (form.website) {
+      const error = validateField("website", form.website);
+      if (error) newErrors.website = error;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleLogoChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -90,9 +230,17 @@ export default function AddBusiness() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate form
+    if (!validateForm()) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
+    setErrors({});
 
     // Validate password confirmation
     if (form.password !== form.password_confirmation) {
@@ -171,6 +319,21 @@ export default function AddBusiness() {
         </Alert>
       )}
 
+      {Object.keys(errors).filter(key => errors[key]).length > 0 && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErrors({})}>
+          <Typography sx={{ fontWeight: 600, mb: 1 }}>Please fix the following errors:</Typography>
+          <Box component="ul" sx={{ m: 0, pl: 2 }}>
+            {Object.entries(errors)
+              .filter(([field, message]) => message) // Only show non-empty messages
+              .map(([field, message]) => (
+                <li key={field}>
+                  <strong>{field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> {message}
+                </li>
+              ))}
+          </Box>
+        </Alert>
+      )}
+
       {success && (
         <Alert severity="success" sx={{ mb: 2 }}>
           {success}
@@ -194,8 +357,10 @@ export default function AddBusiness() {
                 value={form.name}
                 placeholder="Business Name"
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.name}
+                helperText={errors.name}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
@@ -269,8 +434,10 @@ export default function AddBusiness() {
                 name="phone"
                 value={form.phone}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.phone}
+                helperText={errors.phone}
                 sx={input}
-                required
                 disabled={loading}
                 InputProps={{
                   startAdornment: (
@@ -294,8 +461,10 @@ export default function AddBusiness() {
                 name="country"
                 value={form.country}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.country}
+                helperText={errors.country}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
@@ -306,12 +475,14 @@ export default function AddBusiness() {
               <TextField 
                 fullWidth 
                 size="small" 
-                placeholder="City" 
+                placeholder="City"
                 name="city"
                 value={form.city}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.city}
+                helperText={errors.city}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
@@ -322,12 +493,14 @@ export default function AddBusiness() {
               <TextField 
                 fullWidth 
                 size="small" 
-                placeholder="Landmark" 
+                placeholder="Landmark"
                 name="landmark"
                 value={form.landmark}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.landmark}
+                helperText={errors.landmark}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
@@ -345,8 +518,10 @@ export default function AddBusiness() {
                 name="currency"
                 value={form.currency}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.currency}
+                helperText={errors.currency}
                 sx={input}
-                required
                 disabled={loading}
               >
                 <MenuItem value="">Select Currency</MenuItem>
@@ -366,6 +541,9 @@ export default function AddBusiness() {
                 name="website"
                 value={form.website}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.website}
+                helperText={errors.website}
                 sx={input}
                 disabled={loading}
                 InputProps={{
@@ -388,6 +566,9 @@ export default function AddBusiness() {
                 name="alternate_phone"
                 value={form.alternate_phone}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.alternate_phone}
+                helperText={errors.alternate_phone}
                 sx={input}
                 disabled={loading}
                 InputProps={{
@@ -410,8 +591,10 @@ export default function AddBusiness() {
                 name="state"
                 value={form.state}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.state}
+                helperText={errors.state}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
@@ -426,14 +609,16 @@ export default function AddBusiness() {
                 name="zip_code"
                 value={form.zip_code}
                 onChange={handle}
+                onBlur={handleBlur}
+                error={!!errors.zip_code}
+                helperText={errors.zip_code}
                 sx={input}
-                required
                 disabled={loading}
               />
             </Box>
 
             {/* Time zone */}
-            <Box sx={fieldBox}>
+            {/* <Box sx={fieldBox}>
               <Typography sx={label}>Time zone*</Typography>
               <TextField 
                 select 
@@ -454,7 +639,7 @@ export default function AddBusiness() {
                 <MenuItem value="Europe/London">Europe/London (GMT)</MenuItem>
                 <MenuItem value="UTC">UTC</MenuItem>
               </TextField>
-            </Box>
+            </Box> */}
           </Grid>
         </Grid>
 
@@ -490,7 +675,6 @@ export default function AddBusiness() {
             </TextField>
           </Grid>
 
-          {/* First Name */}
           <Grid item xs={12} sm={4} sx={{ flexGrow: 1 }}>
             <Typography sx={label}>First Name*:</Typography>
             <TextField
@@ -500,8 +684,10 @@ export default function AddBusiness() {
               name="first_name"
               value={form.first_name}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.first_name}
+              helperText={errors.first_name}
               sx={input}
-              required
               disabled={loading}
               InputProps={{
                 startAdornment: (
@@ -523,8 +709,10 @@ export default function AddBusiness() {
               name="last_name"
               value={form.last_name}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.last_name}
+              helperText={errors.last_name}
               sx={input}
-              required
               disabled={loading}
               InputProps={{
                 startAdornment: (
@@ -570,8 +758,10 @@ export default function AddBusiness() {
               name="email"
               value={form.email}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.email}
+              helperText={errors.email}
               sx={input}
-              required
               disabled={loading}
               InputProps={{
                 startAdornment: (
@@ -606,8 +796,6 @@ export default function AddBusiness() {
               }}
             />
           </Grid>
-
-          {/* Confirm Password */}
           <Grid item xs={12} sm={6}>
             <Typography sx={label}>Confirm Password*:</Typography>
             <TextField
@@ -618,8 +806,10 @@ export default function AddBusiness() {
               name="password_confirmation"
               value={form.password_confirmation}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.password_confirmation}
+              helperText={errors.password_confirmation}
               sx={input}
-              required
               disabled={loading}
               InputProps={{
                 startAdornment: (
@@ -631,8 +821,6 @@ export default function AddBusiness() {
             />
           </Grid>
         </Grid>
-
-        {/* PACKAGES SECTION */}
         <Typography sx={sectionTitle}>Package & Payment Information</Typography>
         
         <Grid container columnSpacing={6}>
@@ -645,8 +833,10 @@ export default function AddBusiness() {
               name="subscription_package_id"
               value={form.subscription_package_id}
               onChange={handle}
+              onBlur={handleBlur}
+              error={!!errors.subscription_package_id}
+              helperText={errors.subscription_package_id}
               sx={input}
-              required
               disabled={loading}
             >
               <MenuItem value="">Select Package</MenuItem>

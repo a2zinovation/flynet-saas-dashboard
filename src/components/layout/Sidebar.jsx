@@ -52,6 +52,13 @@ export default function Sidebar({
     return () => clearInterval(interval);
   }, []);
 
+  // Listen for mobile menu toggle event
+  useEffect(() => {
+    const handleToggle = () => handleDrawerToggle();
+    window.addEventListener('toggleMobileMenu', handleToggle);
+    return () => window.removeEventListener('toggleMobileMenu', handleToggle);
+  }, [handleDrawerToggle]);
+
   const fetchUnreadCount = async () => {
     const result = await notificationService.getUnreadCount();
     if (result.success) {
@@ -80,7 +87,12 @@ export default function Sidebar({
     { label: "Settings", path: "/settings", icon: <SettingsOutlinedIcon /> },
     { label: "Reports", path: "/reports", icon: <AssessmentOutlinedIcon /> },
   ];
-  const drawerContent = (
+
+  // Function to render drawer content - accepts forceExpanded parameter
+  const renderDrawerContent = (forceExpanded = false) => {
+    const shouldCollapse = forceExpanded ? false : autoCollapsed;
+
+    return (
     <Box
       sx={{
         height: "100%",
@@ -90,7 +102,7 @@ export default function Sidebar({
         flexDirection: "column",
         overflowY: "auto",
         overflowX: "hidden",
-        px: autoCollapsed ? 0.5 : 2,
+        px: shouldCollapse ? 0.5 : 2,
         pt: 2,
       }}
     >
@@ -102,9 +114,9 @@ export default function Sidebar({
         sx={{
           width: "100%",
           display: "flex",
-          flexDirection: autoCollapsed ? "column" : "row",
+          flexDirection: shouldCollapse ? "column" : "row",
           alignItems: "center",
-          justifyContent: autoCollapsed ? "center" : "space-between",         
+          justifyContent: shouldCollapse ? "center" : "space-between",         
            mb: 3,
           transition: "all 0.2s ease",
         }}
@@ -116,17 +128,17 @@ export default function Sidebar({
             justifyContent: "center",
             alignItems: "center",
             display: "flex",
-            width: autoCollapsed ? "100%" : "auto",
-            mb: autoCollapsed ? 1.2 : 0,
+            width: shouldCollapse ? "100%" : "auto",
+            mb: shouldCollapse ? 1.2 : 0,
           }}
           onClick={() => navigate("/dashboard")}
         >
           <img
-            src={autoCollapsed ? "/assets/short-logo.png" : "/assets/flynet-logo.png"}
+            src={shouldCollapse ? "/assets/short-logo.png" : "/assets/flynet-logo.png"}
             alt="Flynet Logo"
             style={{
-              height: autoCollapsed ? 40 : 36,
-              maxWidth: autoCollapsed ? 40 : 160,
+              height: shouldCollapse ? 40 : 36,
+              maxWidth: shouldCollapse ? 40 : 160,
               objectFit: "contain",
               transition: "all 0.16s ease",
             }}
@@ -134,14 +146,14 @@ export default function Sidebar({
         </Box>
 
         {/* COLLAPSE BUTTON — ONLY SHOW ON >= 900px */}
-        {!isMobile && !isTablet && !autoCollapsed && (
+        {!isMobile && !isTablet && !shouldCollapse && !forceExpanded && (
           <IconButton onClick={() => setIsCollapsed(true)} sx={{ color: "#0C2548" }}>
             <MenuIcon />
           </IconButton>
         )}
 
         {/* EXPAND BUTTON — ONLY SHOW ON >= 900px */}
-        {!isMobile && !isTablet && autoCollapsed && (
+        {!isMobile && !isTablet && shouldCollapse && !forceExpanded && (
           <IconButton
             onClick={() => setIsCollapsed(false)}
             sx={{
@@ -170,7 +182,7 @@ export default function Sidebar({
           const showBadge = item.path === "/notification-center" && unreadCount > 0;
 
           /* COLLAPSED MODE — Icons only */
-          if (autoCollapsed) {
+          if (shouldCollapse) {
             return (
               <Tooltip title={item.label} placement="right" key={i}>
                 <ListItemButton
@@ -254,7 +266,8 @@ export default function Sidebar({
 
       <Box sx={{ flexGrow: 1 }} />
     </Box>
-  );
+    );
+  };
 
   return (
     <>
@@ -269,11 +282,10 @@ export default function Sidebar({
           "& .MuiDrawer-paper": {
             width: drawerWidth,
             boxSizing: "border-box",
-            zIndex: 2000,
+            zIndex: (theme) => theme.zIndex.drawer + 3,
           },
         }}
-      >
-        {drawerContent}
+      >{renderDrawerContent(true)}
       </Drawer>
 
       {/* DESKTOP SIDEBAR */}
@@ -287,11 +299,12 @@ export default function Sidebar({
             boxSizing: "border-box",
             transition: "width 0.16s ease",
             overflowX: "hidden",
-            zIndex: 2000,
+            zIndex: (theme) => theme.zIndex.drawer + 1,
           },
         }}
       >
-        {drawerContent}
+        {renderDrawerContent(false)}
+        {/* {drawerContent} */}
       </Drawer>
     </>
   );

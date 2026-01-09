@@ -1,198 +1,581 @@
-// src/pages/Reports.jsx
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
-  Paper,
   Typography,
-  Stack,
-  Button,
-  TextField,
-  InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
+  Grid,
+  Paper,
+  Divider,
   Table,
+  TableBody,
+  TableCell,
+  TableContainer,
   TableHead,
   TableRow,
-  TableCell,
-  TableBody,
-  Divider,
+  Stack,
+  Skeleton,
+  Alert,
+  CircularProgress,
+  LinearProgress,
 } from "@mui/material";
 
-import SearchIcon from "@mui/icons-material/Search";
-import FileDownloadIcon from "@mui/icons-material/FileDownload";
-import PrintIcon from "@mui/icons-material/Print";
-import FilterListIcon from "@mui/icons-material/FilterList";
+// Icons
+import BusinessIcon from "@mui/icons-material/Business";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import BlockIcon from "@mui/icons-material/Block";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import reportService from "../services/reportService";
 
 export default function Reports() {
-  const [entries, setEntries] = useState(25);
-  const [search, setSearch] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [packageIncome, setPackageIncome] = useState([]);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [loadingPackages, setLoadingPackages] = useState(true);
+  const [error, setError] = useState("");
 
-  const mockReports = [
-    {
-      id: 1,
-      date: "08/18/2025 09:15",
-      user: "Admin",
-      category: "Business",
-      action: "Created Subscription",
-      detail: "Subscription created for Demo Business",
-    },
-    {
-      id: 2,
-      date: "08/22/2025 12:30",
-      user: "Super Admin",
-      category: "Package",
-      action: "Package Updated",
-      detail: "Regular package was updated",
-    },
-    {
-      id: 3,
-      date: "09/03/2025 14:10",
-      user: "Admin",
-      category: "Settings",
-      action: "SMTP Updated",
-      detail: "Email settings configured",
-    },
-  ];
+  useEffect(() => {
+    loadSummary();
+    loadPackageIncome();
+  }, []);
 
-  const filteredReports = mockReports.filter((row) =>
-    Object.values(row).join(" ").toLowerCase().includes(search.toLowerCase())
-  );
+  const loadSummary = async () => {
+    setLoadingSummary(true);
+    const result = await reportService.getSummary();
+    if (result.success) {
+      setSummary(result.data || null);
+    } else {
+      setError(result.message || "Failed to load summary");
+      setSummary(null);
+    }
+    setLoadingSummary(false);
+  };
+
+  const loadPackageIncome = async () => {
+    setLoadingPackages(true);
+    const result = await reportService.getPackageIncome();
+    if (result.success) {
+      setPackageIncome(result.data || []);
+    } else {
+      setError(result.message || "Failed to load package income");
+      setPackageIncome([]);
+    }
+    setLoadingPackages(false);
+  };
+
+  const kpis = useMemo(() => {
+    return [
+      {
+        label: "Registered Businesses",
+        value: summary?.registered_businesses,
+        icon: <BusinessIcon />,
+        color: "#1E3A8A",
+      },
+      {
+        label: "Active Businesses",
+        value: summary?.active_businesses,
+        icon: <CheckCircleIcon />,
+        color: "#10B981",
+      },
+      {
+        label: "Inactive Businesses",
+        value: summary?.inactive_businesses,
+        icon: <BlockIcon />,
+        color: "#EF4444",
+      },
+      {
+        label: "Total Income",
+        value: summary?.total_income,
+        icon: <AttachMoneyIcon />,
+        color: "#22C55E",
+      },
+      {
+        label: "Total Cameras",
+        value: summary?.total_cameras,
+        icon: <CameraAltIcon />,
+        color: "#14B8A6",
+      },
+    ];
+  }, [summary]);
 
   return (
-    <Box>
-      {/* Page Title */}
-      <Typography variant="h5" fontWeight="700" sx={{ mb: 1 }}>
-        Activity Logs
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        View system activity logs & audits
+    <Box sx={{ px: { xs: 1, sm: 2 }, pb: 4 }}>
+      {/* PAGE TITLE */}
+      <Typography
+        sx={{
+          fontSize: { xs: 18, sm: 22 },
+          fontWeight: 700,
+          color: "#0C2548",
+          mb: 2,
+        }}
+      >
+        Reports
       </Typography>
 
-      {/* Report Container */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+
+      {/* KPI CARDS */}
+      <Grid container spacing={2}>
+        {kpis.map((kpi, i) => (
+          <Grid item xs={12} sm={6} md={4} lg={2.4} key={kpi.label}>
+            <Paper
+              elevation={0}
+              sx={{
+                height: "100%",
+                borderRadius: 2,
+                border: "1px solid #E8EDF2",
+                display: "flex",
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                sx={{
+                  width: 56,
+                  bgcolor: kpi.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                }}
+              >
+                {kpi.icon}
+              </Box>
+
+              <Box sx={{ p: 2, width: "100%" }}>
+                <Typography variant="body2" sx={{ color: "#6B7280", mb: 0.5 }}>
+                  {kpi.label}
+                </Typography>
+
+                {loadingSummary ? (
+                  <Skeleton width={80} height={24} />
+                ) : (
+                  <Typography
+                    sx={{
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color: "#0C2548",
+                    }}
+                  >
+                    {kpi.value ?? "-"}
+                  </Typography>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* STATISTICS SECTION */}
       <Paper
         elevation={0}
         sx={{
-          p: 2,
+          mt: 4,
           borderRadius: 2,
           border: "1px solid #E8EDF2",
         }}
       >
-        {/* TOP TOOLBAR */}
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          justifyContent="space-between"
-          alignItems="center"
-          spacing={2}
-          sx={{ mb: 2 }}
-        >
-          {/* Left side: Entries + Export */}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2">Show</Typography>
+        <Box sx={{ p: 2 }}>
+          <Typography fontWeight={600}>Statistics</Typography>
+        </Box>
 
-            <FormControl size="small" sx={{ minWidth: 80 }}>
-              <Select
-                value={entries}
-                onChange={(e) => setEntries(Number(e.target.value))}
-                size="small"
-              >
-                <MenuItem value={10}>10</MenuItem>
-                <MenuItem value={25}>25</MenuItem>
-                <MenuItem value={50}>50</MenuItem>
-              </Select>
-            </FormControl>
+        <Divider />
 
-            <Typography variant="body2">entries</Typography>
-
-            {/* Export buttons */}
-            <Button
-              startIcon={<FileDownloadIcon />}
-              size="small"
-              sx={{ textTransform: "none" }}
-            >
-              Export CSV
-            </Button>
-
-            <Button startIcon={<PrintIcon />} size="small" sx={{ textTransform: "none" }}>
-              Print
-            </Button>
-
-            <Button
-              startIcon={<FilterListIcon />}
-              size="small"
-              onClick={() => setFilterOpen(!filterOpen)}
-              sx={{ textTransform: "none" }}
-            >
-              Filters
-            </Button>
-          </Stack>
-
-          {/* Right side: Search */}
-          <TextField
-            size="small"
-            placeholder="Search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
+        <Grid container>
+          {/* LEFT — CHART SKELETONS */}
+          <Grid
+            item
+            xs={12}
+            md={6}
+            sx={{
+              p: 2,
+              borderRight: { md: "1px solid #E8EDF2" },
             }}
-          />
-        </Stack>
-
-        {/* FILTER PANEL */}
-        {filterOpen && (
-          <Paper
-            variant="outlined"
-            sx={{ p: 2, mb: 2, borderRadius: 1, backgroundColor: "#F8FAFC" }}
           >
-            <Typography variant="body2">Filters section — Add conditions here</Typography>
-          </Paper>
-        )}
+            <Typography fontWeight={600} sx={{ mb: 2 }}>
+              Business & Camera Statistics
+            </Typography>
 
-        {/* TABLE */}
-        <Table size="small">
-          <TableHead sx={{ backgroundColor: "#FBFCFE" }}>
-            <TableRow>
-              <TableCell sx={{ width: 180 }}>Date</TableCell>
-              <TableCell>User</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Action</TableCell>
-              <TableCell>Details</TableCell>
-            </TableRow>
-          </TableHead>
+            {loadingSummary ? (
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: "#F8FAFC",
+                  p: 2,
+                }}
+              >
+                <Grid container spacing={3}>
+                  {/* DONUT PLACEHOLDER */}
+                  <Grid item xs={12} sm={6}>
+                    <Stack alignItems="center" spacing={1}>
+                      <Skeleton
+                        variant="circular"
+                        width={120}
+                        height={120}
+                      />
+                      <Skeleton width={120} height={16} />
+                      <Skeleton width={80} height={14} />
+                    </Stack>
+                  </Grid>
 
-          <TableBody>
-            {filteredReports.slice(0, entries).map((row) => (
-              <TableRow key={row.id} hover>
-                <TableCell>{row.date}</TableCell>
-                <TableCell>{row.user}</TableCell>
-                <TableCell>{row.category}</TableCell>
-                <TableCell>{row.action}</TableCell>
-                <TableCell>{row.detail}</TableCell>
-              </TableRow>
-            ))}
+                  {/* SECOND DONUT PLACEHOLDER */}
+                  <Grid item xs={12} sm={6}>
+                    <Stack alignItems="center" spacing={1}>
+                      <Skeleton
+                        variant="circular"
+                        width={120}
+                        height={120}
+                      />
+                      <Skeleton width={120} height={16} />
+                      <Skeleton width={80} height={14} />
+                    </Stack>
+                  </Grid>
 
-            {filteredReports.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.secondary">No reports found</Typography>
-                </TableCell>
-              </TableRow>
+                  {/* BAR CHART PLACEHOLDER */}
+                  <Grid item xs={12}>
+                    <Stack spacing={1}>
+                      {[1, 2, 3, 4].map((i) => (
+                        <Skeleton
+                          key={i}
+                          variant="rectangular"
+                          height={12}
+                          sx={{ borderRadius: 1 }}
+                        />
+                      ))}
+                    </Stack>
+                  </Grid>
+                </Grid>
+
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: "block",
+                    textAlign: "center",
+                    color: "#94A3B8",
+                    mt: 2,
+                  }}
+                >
+                  Loading charts...
+                </Typography>
+              </Paper>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 2,
+                  bgcolor: "#F8FAFC",
+                  p: 2,
+                }}
+              >
+                <Grid container spacing={3}>
+                  {/* BUSINESS STATUS DONUT */}
+                  <Grid item xs={12} sm={6}>
+                    <Stack alignItems="center" spacing={1}>
+                      <Box sx={{ position: 'relative', width: 140, height: 140 }}>
+                        <svg width="140" height="140" viewBox="0 0 140 140">
+                          {/* Background circle */}
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r="50"
+                            fill="none"
+                            stroke="#E5E7EB"
+                            strokeWidth="20"
+                          />
+                          {/* Active businesses arc */}
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r="50"
+                            fill="none"
+                            stroke="#10B981"
+                            strokeWidth="20"
+                            strokeDasharray={`${((summary?.active_businesses || 0) / (summary?.registered_businesses || 1)) * 314} 314`}
+                            strokeDashoffset="0"
+                            transform="rotate(-90 70 70)"
+                            strokeLinecap="round"
+                          />
+                          {/* Inactive businesses arc */}
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r="50"
+                            fill="none"
+                            stroke="#EF4444"
+                            strokeWidth="20"
+                            strokeDasharray={`${((summary?.inactive_businesses || 0) / (summary?.registered_businesses || 1)) * 314} 314`}
+                            strokeDashoffset={`-${((summary?.active_businesses || 0) / (summary?.registered_businesses || 1)) * 314}`}
+                            transform="rotate(-90 70 70)"
+                            strokeLinecap="round"
+                          />
+                          {/* Center text */}
+                          <text
+                            x="70"
+                            y="70"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize="24"
+                            fontWeight="700"
+                            fill="#0C2548"
+                          >
+                            {summary?.registered_businesses || 0}
+                          </text>
+                          <text
+                            x="70"
+                            y="88"
+                            textAnchor="middle"
+                            fontSize="10"
+                            fill="#6B7280"
+                          >
+                            Total
+                          </text>
+                        </svg>
+                      </Box>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Business Status
+                      </Typography>
+                      <Stack spacing={0.5} sx={{ width: '100%' }}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Box sx={{ width: 12, height: 12, bgcolor: '#10B981', borderRadius: '50%' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            Active: {summary?.active_businesses || 0}
+                          </Typography>
+                        </Stack>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Box sx={{ width: 12, height: 12, bgcolor: '#EF4444', borderRadius: '50%' }} />
+                          <Typography variant="caption" color="text.secondary">
+                            Inactive: {summary?.inactive_businesses || 0}
+                          </Typography>
+                        </Stack>
+                      </Stack>
+                    </Stack>
+                  </Grid>
+
+                  {/* CAMERA METRICS */}
+                  <Grid item xs={12} sm={6}>
+                    <Stack alignItems="center" spacing={1}>
+                      <Box sx={{ position: 'relative', width: 140, height: 140 }}>
+                        <svg width="140" height="140" viewBox="0 0 140 140">
+                          {/* Background circle */}
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r="50"
+                            fill="none"
+                            stroke="#E5E7EB"
+                            strokeWidth="20"
+                          />
+                          {/* Cameras arc */}
+                          <circle
+                            cx="70"
+                            cy="70"
+                            r="50"
+                            fill="none"
+                            stroke="#14B8A6"
+                            strokeWidth="20"
+                            strokeDasharray="314 314"
+                            strokeDashoffset="0"
+                            transform="rotate(-90 70 70)"
+                            strokeLinecap="round"
+                          />
+                          {/* Center text */}
+                          <text
+                            x="70"
+                            y="70"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            fontSize="24"
+                            fontWeight="700"
+                            fill="#0C2548"
+                          >
+                            {summary?.total_cameras || 0}
+                          </text>
+                          <text
+                            x="70"
+                            y="88"
+                            textAnchor="middle"
+                            fontSize="10"
+                            fill="#6B7280"
+                          >
+                            Cameras
+                          </text>
+                        </svg>
+                      </Box>
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        Total Cameras
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" textAlign="center">
+                        {summary?.active_businesses > 0 
+                          ? `Avg: ${Math.round((summary?.total_cameras || 0) / summary?.active_businesses)} per business`
+                          : 'No active businesses'}
+                      </Typography>
+                    </Stack>
+                  </Grid>
+
+                  {/* BAR CHART - Business Distribution */}
+                  <Grid item xs={12}>
+                    <Typography variant="caption" fontWeight={600} sx={{ mb: 1, display: 'block' }}>
+                      Business Metrics Overview
+                    </Typography>
+                    <Stack spacing={2}>
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Total Registered
+                          </Typography>
+                          <Typography variant="caption" fontWeight={600}>
+                            {summary?.registered_businesses || 0}
+                          </Typography>
+                        </Stack>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={100} 
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 1,
+                            bgcolor: '#E5E7EB',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: '#1E3A8A',
+                            }
+                          }} 
+                        />
+                      </Box>
+
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Active Businesses
+                          </Typography>
+                          <Typography variant="caption" fontWeight={600}>
+                            {summary?.active_businesses || 0} ({summary?.registered_businesses > 0 ? Math.round((summary?.active_businesses / summary?.registered_businesses) * 100) : 0}%)
+                          </Typography>
+                        </Stack>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={(summary?.active_businesses || 0) / (summary?.registered_businesses || 1) * 100} 
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 1,
+                            bgcolor: '#E5E7EB',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: '#10B981',
+                            }
+                          }} 
+                        />
+                      </Box>
+
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Inactive Businesses
+                          </Typography>
+                          <Typography variant="caption" fontWeight={600}>
+                            {summary?.inactive_businesses || 0} ({summary?.registered_businesses > 0 ? Math.round((summary?.inactive_businesses / summary?.registered_businesses) * 100) : 0}%)
+                          </Typography>
+                        </Stack>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={(summary?.inactive_businesses || 0) / (summary?.registered_businesses || 1) * 100} 
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 1,
+                            bgcolor: '#E5E7EB',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: '#EF4444',
+                            }
+                          }} 
+                        />
+                      </Box>
+
+                      <Box>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary">
+                            Total Cameras Deployed
+                          </Typography>
+                          <Typography variant="caption" fontWeight={600}>
+                            {summary?.total_cameras || 0}
+                          </Typography>
+                        </Stack>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={summary?.total_cameras > 0 ? 100 : 0} 
+                          sx={{ 
+                            height: 10, 
+                            borderRadius: 1,
+                            bgcolor: '#E5E7EB',
+                            '& .MuiLinearProgress-bar': {
+                              bgcolor: '#14B8A6',
+                            }
+                          }} 
+                        />
+                      </Box>
+                    </Stack>
+                  </Grid>
+                </Grid>
+              </Paper>
             )}
-          </TableBody>
-        </Table>
+          </Grid>
 
-        {/* FOOTER (pagination placeholder) */}
-        <Divider sx={{ mt: 2 }} />
+          {/* RIGHT — PACKAGE TABLE */}
+          <Grid item xs={12} md={6} sx={{ p: 2 }}>
+            <Typography fontWeight={600} sx={{ mb: 2 }}>
+              Package-Wise Income
+            </Typography>
 
-        <Stack direction="row" justifyContent="flex-end" sx={{ mt: 1 }}>
-          <Typography variant="body2">Page 1 of 1</Typography>
-        </Stack>
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Package Name</TableCell>
+                    <TableCell align="center">Active Businesses</TableCell>
+                    <TableCell align="right">Total Income</TableCell>
+                  </TableRow>
+                </TableHead>
+
+                <TableBody>
+                  {loadingPackages
+                    ? Array.from({ length: 4 }).map((_, i) => (
+                        <TableRow key={`skeleton-${i}`}>
+                          <TableCell><Skeleton width={120} /></TableCell>
+                          <TableCell align="center"><Skeleton width={60} /></TableCell>
+                          <TableCell align="right"><Skeleton width={80} /></TableCell>
+                        </TableRow>
+                      ))
+                    : packageIncome.map((row, i) => (
+                        <TableRow key={`${row.name}-${i}`}>
+                          <TableCell>{row.name}</TableCell>
+                          <TableCell align="center">{row.businesses}</TableCell>
+                          <TableCell align="right">{row.income}</TableCell>
+                        </TableRow>
+                      ))}
+
+                  {!loadingPackages && packageIncome.length > 0 && (
+                    <TableRow>
+                      <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 600 }}>
+                        {packageIncome.reduce((sum, row) => sum + Number(row.businesses || 0), 0)}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>
+                        {packageIncome.reduce((sum, row) => sum + Number((row.income_numeric ?? row.income) || 0), 0)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {!loadingPackages && packageIncome.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} align="center">
+                        <Typography color="text.secondary">No data available</Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Grid>
+        </Grid>
       </Paper>
     </Box>
   );
