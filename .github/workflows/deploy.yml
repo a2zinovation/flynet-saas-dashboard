@@ -1,0 +1,43 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ "main" ]  # Trigger on push to main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Download Code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Setup Node.js Environment
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # 3. Install Dependencies
+    - name: Install Dependencies
+      run: npm ci
+
+    # 4. Build the Project
+    - name: Build Project
+      run: npm run build
+      # This usually creates a 'dist' or 'build' folder. 
+      # CHECK YOUR PACKAGE.JSON to ensure 'npm run build' works!
+
+    # 5. Deploy to Server (Using Rsync)
+    - name: Deploy to Server
+      uses: easingthemes/ssh-deploy@main
+      with:
+        ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+        args: "-rlgoDzvc -i --delete"
+        source: "dist/"   # <--- CHANGE THIS if your build folder is named 'build'
+        remote_host: ${{ secrets.HOST }}
+        remote_user: ${{ secrets.USERNAME }}
+        target: "/var/www/super/" # <--- CHANGE THIS for the VMS repo (/var/www/vms/)
+        # The '--delete' flag deletes old files on the server that are no longer in the build
