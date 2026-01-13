@@ -21,7 +21,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";   // ⭐ NEW
 
 // AUTH
-import Login from "./pages/Auth/Login";
+import Login from "./pages/auth/Login";
 import RequireAuth from "./components/auth/RequireAuth";
 import AuthLayout from "./layouts/AuthLayout";
 export default function App() {
