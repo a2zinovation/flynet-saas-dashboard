@@ -98,7 +98,7 @@ export default function Login() {
           }}
         >
           <Typography variant="h4" fontWeight={700} textAlign="center" mb={1}>
-            Login Here
+            Admin Login
           </Typography>
 
           <Typography
